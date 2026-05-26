@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink-950: #F8FAFC;
+  --ink-900: #F1F5F9;
+  --ink-800: #FFFFFF;
+  --ink-700: #E2E8F0;
+  --ink-600: #CBD5E1;
+  --amber: #FBBF24;
+  --sky: #38BDF8;
+  --emerald: #34D399;
+  --rose: #FB7185;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--ink-950);
+  color: #1E293B;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--ink-900);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-700);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-600);
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Input autofill override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1E293B;
+  -webkit-box-shadow: 0 0 0px 1000px var(--ink-800) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Inter', sans-serif;
+  }
+  .font-mono {
+    font-family: 'Inter', sans-serif;
+  }
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+}
+
+/* Animated gradient border */
+@keyframes border-spin {
+  0% { --angle: 0deg; }
+  100% { --angle: 360deg; }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.gradient-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--ink-800), var(--ink-800)) padding-box,
+    conic-gradient(from var(--angle), #FBBF24, #38BDF8, #34D399, #FBBF24) border-box;
+  animation: border-spin 4s linear infinite;
+}
+
+/* Background noise overlay for light mode */
+.bg-noise {
+  opacity: 0.03;
+}
+
+/* Shimmer effect for loading */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--ink-700) 25%,
+    var(--ink-600) 50%,
+    var(--ink-700) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Flight path dashed line */
+.flight-path {
+  position: relative;
+}
+.flight-path::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(251, 191, 36, 0.6) 0px,
+    rgba(251, 191, 36, 0.6) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}

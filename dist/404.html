@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>TripCase</title>
+  <!-- GitHub Pages SPA redirect hack -->
+  <script>
+    const path = window.location.pathname;
+    const base = '/tripcase';
+    if (path.startsWith(base)) {
+      const rest = path.slice(base.length) || '/';
+      sessionStorage.setItem('redirect', rest + window.location.search);
+    }
+    window.location.replace(base + '/');
+  </script>
+</head>
+<body></body>
+</html>

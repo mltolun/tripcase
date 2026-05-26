@@ -1,0 +1,216 @@
+export interface Airline {
+  iata: string
+  name: string
+  country: string
+}
+
+export const AIRLINES: Airline[] = [
+  // North America
+  { iata: 'AA', name: 'American Airlines', country: 'US' },
+  { iata: 'UA', name: 'United Airlines', country: 'US' },
+  { iata: 'DL', name: 'Delta Air Lines', country: 'US' },
+  { iata: 'WN', name: 'Southwest Airlines', country: 'US' },
+  { iata: 'B6', name: 'JetBlue Airways', country: 'US' },
+  { iata: 'AS', name: 'Alaska Airlines', country: 'US' },
+  { iata: 'F9', name: 'Frontier Airlines', country: 'US' },
+  { iata: 'NK', name: 'Spirit Airlines', country: 'US' },
+  { iata: 'G4', name: 'Allegiant Air', country: 'US' },
+  { iata: 'SY', name: 'Sun Country Airlines', country: 'US' },
+  { iata: 'HA', name: 'Hawaiian Airlines', country: 'US' },
+  { iata: 'AC', name: 'Air Canada', country: 'CA' },
+  { iata: 'WS', name: 'WestJet', country: 'CA' },
+  { iata: 'PD', name: 'Porter Airlines', country: 'CA' },
+  { iata: 'AM', name: 'Aeromexico', country: 'MX' },
+  { iata: 'Y4', name: 'Volaris', country: 'MX' },
+  { iata: '4O', name: 'Interjet', country: 'MX' },
+
+  // Europe — Legacy / Full-service
+  { iata: 'BA', name: 'British Airways', country: 'GB' },
+  { iata: 'LH', name: 'Lufthansa', country: 'DE' },
+  { iata: 'AF', name: 'Air France', country: 'FR' },
+  { iata: 'IB', name: 'Iberia', country: 'ES' },
+  { iata: 'KL', name: 'KLM Royal Dutch Airlines', country: 'NL' },
+  { iata: 'AZ', name: 'ITA Airways', country: 'IT' },
+  { iata: 'SK', name: 'Scandinavian Airlines', country: 'SE' },
+  { iata: 'LX', name: 'Swiss International Air Lines', country: 'CH' },
+  { iata: 'OS', name: 'Austrian Airlines', country: 'AT' },
+  { iata: 'TP', name: 'TAP Air Portugal', country: 'PT' },
+  { iata: 'AY', name: 'Finnair', country: 'FI' },
+  { iata: 'SN', name: 'Brussels Airlines', country: 'BE' },
+  { iata: 'LG', name: 'Luxair', country: 'LU' },
+  { iata: 'BT', name: 'Air Baltic', country: 'LV' },
+  { iata: 'TK', name: 'Turkish Airlines', country: 'TR' },
+  { iata: 'PS', name: 'Ukraine International Airlines', country: 'UA' },
+
+  // Europe — Low-cost
+  { iata: 'FR', name: 'Ryanair', country: 'IE' },
+  { iata: 'U2', name: 'easyJet', country: 'GB' },
+  { iata: 'W6', name: 'Wizz Air', country: 'HU' },
+  { iata: 'VY', name: 'Vueling', country: 'ES' },
+  { iata: 'EW', name: 'Eurowings', country: 'DE' },
+  { iata: 'HV', name: 'Transavia', country: 'NL' },
+  { iata: 'TO', name: 'Transavia France', country: 'FR' },
+  { iata: 'PC', name: 'Pegasus Airlines', country: 'TR' },
+  { iata: 'TOM', name: 'TUI Airways', country: 'GB' },
+  { iata: 'MT', name: 'Thomas Cook Airlines', country: 'GB' },
+  { iata: 'X3', name: 'TUIfly', country: 'DE' },
+  { iata: 'DE', name: 'Condor', country: 'DE' },
+  { iata: 'EN', name: 'Air Dolomiti', country: 'IT' },
+  { iata: 'I2', name: 'Iberia Express', country: 'ES' },
+  { iata: 'V7', name: 'Volotea', country: 'ES' },
+  { iata: 'LS', name: 'Jet2', country: 'GB' },
+  { iata: 'BY', name: 'TUI Airways UK', country: 'GB' },
+  { iata: 'LO', name: 'LOT Polish Airlines', country: 'PL' },
+  { iata: 'OK', name: 'Czech Airlines', country: 'CZ' },
+  { iata: 'RO', name: 'TAROM', country: 'RO' },
+  { iata: 'FB', name: 'Bulgaria Air', country: 'BG' },
+  { iata: 'JU', name: 'Air Serbia', country: 'RS' },
+  { iata: 'OU', name: 'Croatia Airlines', country: 'HR' },
+  { iata: 'JP', name: 'Adria Airways', country: 'SI' },
+  { iata: 'A3', name: 'Aegean Airlines', country: 'GR' },
+  { iata: 'OA', name: 'Olympic Air', country: 'GR' },
+  { iata: 'UX', name: 'Air Europa', country: 'ES' },
+  { iata: 'AB', name: 'Air Berlin', country: 'DE' },
+  { iata: 'IG', name: 'Meridiana', country: 'IT' },
+  { iata: 'SU', name: 'Aeroflot', country: 'RU' },
+  { iata: 'S7', name: 'S7 Airlines', country: 'RU' },
+  { iata: 'U6', name: 'Ural Airlines', country: 'RU' },
+  { iata: 'UN', name: 'Transaero Airlines', country: 'RU' },
+
+  // Middle East
+  { iata: 'EK', name: 'Emirates', country: 'AE' },
+  { iata: 'QR', name: 'Qatar Airways', country: 'QA' },
+  { iata: 'EY', name: 'Etihad Airways', country: 'AE' },
+  { iata: 'GF', name: 'Gulf Air', country: 'BH' },
+  { iata: 'SV', name: 'Saudia', country: 'SA' },
+  { iata: 'WY', name: 'Oman Air', country: 'OM' },
+  { iata: 'FZ', name: 'flydubai', country: 'AE' },
+  { iata: 'G9', name: 'Air Arabia', country: 'AE' },
+  { iata: 'XY', name: 'flynas', country: 'SA' },
+  { iata: 'F3', name: 'Flyadeal', country: 'SA' },
+  { iata: 'RJ', name: 'Royal Jordanian', country: 'JO' },
+  { iata: 'ME', name: 'Middle East Airlines', country: 'LB' },
+  { iata: 'IR', name: 'Iran Air', country: 'IR' },
+  { iata: 'IY', name: 'Yemenia', country: 'YE' },
+  { iata: 'KU', name: 'Kuwait Airways', country: 'KW' },
+  { iata: 'LY', name: 'El Al', country: 'IL' },
+  { iata: 'IS', name: 'Arkia Israeli Airlines', country: 'IL' },
+
+  // Africa
+  { iata: 'ET', name: 'Ethiopian Airlines', country: 'ET' },
+  { iata: 'KQ', name: 'Kenya Airways', country: 'KE' },
+  { iata: 'SA', name: 'South African Airways', country: 'ZA' },
+  { iata: 'MS', name: 'EgyptAir', country: 'EG' },
+  { iata: 'AT', name: 'Royal Air Maroc', country: 'MA' },
+  { iata: 'WB', name: 'RwandAir', country: 'RW' },
+  { iata: 'TU', name: 'Tunisair', country: 'TN' },
+  { iata: 'AH', name: 'Air Algérie', country: 'DZ' },
+  { iata: 'SW', name: 'Air Namibia', country: 'NA' },
+  { iata: 'TC', name: 'Air Tanzania', country: 'TZ' },
+  { iata: 'RA', name: 'Royal Nepal Airlines', country: 'NP' },
+  { iata: '3O', name: 'Air Arabia Maroc', country: 'MA' },
+
+  // Asia — Full-service
+  { iata: 'SQ', name: 'Singapore Airlines', country: 'SG' },
+  { iata: 'CX', name: 'Cathay Pacific', country: 'HK' },
+  { iata: 'JL', name: 'Japan Airlines', country: 'JP' },
+  { iata: 'NH', name: 'All Nippon Airways', country: 'JP' },
+  { iata: 'KE', name: 'Korean Air', country: 'KR' },
+  { iata: 'OZ', name: 'Asiana Airlines', country: 'KR' },
+  { iata: 'CA', name: 'Air China', country: 'CN' },
+  { iata: 'CZ', name: 'China Southern Airlines', country: 'CN' },
+  { iata: 'MU', name: 'China Eastern Airlines', country: 'CN' },
+  { iata: 'HU', name: 'Hainan Airlines', country: 'CN' },
+  { iata: 'CI', name: 'China Airlines', country: 'TW' },
+  { iata: 'BR', name: 'EVA Air', country: 'TW' },
+  { iata: 'TG', name: 'Thai Airways', country: 'TH' },
+  { iata: 'MH', name: 'Malaysia Airlines', country: 'MY' },
+  { iata: 'GA', name: 'Garuda Indonesia', country: 'ID' },
+  { iata: 'AI', name: 'Air India', country: 'IN' },
+  { iata: 'VN', name: 'Vietnam Airlines', country: 'VN' },
+  { iata: 'PR', name: 'Philippine Airlines', country: 'PH' },
+  { iata: 'BI', name: 'Royal Brunei Airlines', country: 'BN' },
+  { iata: 'UL', name: 'SriLankan Airlines', country: 'LK' },
+  { iata: 'PK', name: 'Pakistan International Airlines', country: 'PK' },
+  { iata: 'KC', name: 'Air Astana', country: 'KZ' },
+  { iata: 'UZ', name: 'Uzbekistan Airways', country: 'UZ' },
+  { iata: 'OM', name: 'MIAT Mongolian Airlines', country: 'MN' },
+
+  // Asia — Low-cost
+  { iata: 'AK', name: 'AirAsia', country: 'MY' },
+  { iata: 'FD', name: 'Thai AirAsia', country: 'TH' },
+  { iata: 'QZ', name: 'Indonesia AirAsia', country: 'ID' },
+  { iata: 'Z2', name: 'Philippines AirAsia', country: 'PH' },
+  { iata: 'D7', name: 'AirAsia X', country: 'MY' },
+  { iata: 'TR', name: 'Scoot', country: 'SG' },
+  { iata: 'TZ', name: 'Scoot (old)', country: 'SG' },
+  { iata: '3K', name: 'Jetstar Asia', country: 'SG' },
+  { iata: 'GK', name: 'Jetstar Japan', country: 'JP' },
+  { iata: 'BL', name: 'Pacific Airlines', country: 'VN' },
+  { iata: 'VJ', name: 'VietJet Air', country: 'VN' },
+  { iata: 'QH', name: 'Bamboo Airways', country: 'VN' },
+  { iata: '6E', name: 'IndiGo', country: 'IN' },
+  { iata: 'SG', name: 'SpiceJet', country: 'IN' },
+  { iata: 'IX', name: 'Air India Express', country: 'IN' },
+  { iata: 'G8', name: 'Go First', country: 'IN' },
+  { iata: 'CEB', name: 'Cebu Pacific', country: 'PH' },
+  { iata: 'LJ', name: 'Jin Air', country: 'KR' },
+  { iata: 'TW', name: "T'way Air", country: 'KR' },
+  { iata: 'ZE', name: 'Eastar Jet', country: 'KR' },
+  { iata: 'BX', name: 'Air Busan', country: 'KR' },
+  { iata: 'MM', name: 'Peach Aviation', country: 'JP' },
+  { iata: 'GJ', name: 'Loong Air', country: 'CN' },
+  { iata: 'ZH', name: 'Shenzhen Airlines', country: 'CN' },
+  { iata: 'FM', name: 'Shanghai Airlines', country: 'CN' },
+  { iata: 'SC', name: 'Shandong Airlines', country: 'CN' },
+  { iata: 'UO', name: 'HK Express', country: 'HK' },
+  { iata: 'HX', name: 'Hong Kong Airlines', country: 'HK' },
+
+  // Pacific
+  { iata: 'QF', name: 'Qantas', country: 'AU' },
+  { iata: 'VA', name: 'Virgin Australia', country: 'AU' },
+  { iata: 'JQ', name: 'Jetstar', country: 'AU' },
+  { iata: 'NZ', name: 'Air New Zealand', country: 'NZ' },
+  { iata: 'FJ', name: 'Fiji Airways', country: 'FJ' },
+  { iata: 'PX', name: 'Air Niugini', country: 'PG' },
+  { iata: 'SB', name: 'Aircalin', country: 'NC' },
+
+  // Latin America
+  { iata: 'LA', name: 'LATAM Airlines', country: 'CL' },
+  { iata: 'LP', name: 'LATAM Airlines Peru', country: 'PE' },
+  { iata: 'JJ', name: 'LATAM Airlines Brasil', country: 'BR' },
+  { iata: '4M', name: 'LATAM Airlines Argentina', country: 'AR' },
+  { iata: 'G3', name: 'GOL Linhas Aéreas', country: 'BR' },
+  { iata: 'AD', name: 'Azul Brazilian Airlines', country: 'BR' },
+  { iata: 'CM', name: 'Copa Airlines', country: 'PA' },
+  { iata: 'AV', name: 'Avianca', country: 'CO' },
+  { iata: 'H2', name: 'Sky Airline', country: 'CL' },
+  { iata: 'JA', name: 'JetSMART', country: 'CL' },
+  { iata: 'AR', name: 'Aerolíneas Argentinas', country: 'AR' },
+  { iata: 'P9', name: 'Peruvian Airlines', country: 'PE' },
+  { iata: 'W4', name: 'LC Perú', country: 'PE' },
+  { iata: 'BV', name: 'Blue Panorama Airlines', country: 'IT' },
+  { iata: 'MM', name: 'Aeromar', country: 'MX' },
+  { iata: 'VB', name: 'VivaAerobus', country: 'MX' },
+  { iata: 'TB', name: 'TUI fly Belgium', country: 'BE' },
+
+  // Caribbean
+  { iata: 'BW', name: 'Caribbean Airlines', country: 'TT' },
+  { iata: 'JM', name: 'Air Jamaica', country: 'JM' },
+  { iata: 'WP', name: 'Island Air', country: 'US' },
+]
+
+export function searchAirlines(query: string): Airline[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  return AIRLINES.filter(
+    a =>
+      a.name.toLowerCase().includes(q) ||
+      a.iata.toLowerCase().includes(q) ||
+      a.country.toLowerCase().includes(q)
+  ).slice(0, 8)
+}
+
+export function airlineLogoUrl(iata: string): string {
+  return `https://images.kiwi.com/airlines/64/${iata.toUpperCase()}.png`
+}
