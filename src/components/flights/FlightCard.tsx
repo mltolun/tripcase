@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, RefreshCw } from 'lucide-react'
+import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
 import { formatDate, formatTime, formatDuration, FLIGHT_STATUS_COLORS, airlineLogoUrl, localDateStr } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { Modal } from '../ui/Modal'
 import { cn } from '../../lib/utils'
 
 interface FlightCardProps {
@@ -18,6 +19,7 @@ interface FlightCardProps {
 export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly }: FlightCardProps) {
   const [logoError, setLogoError] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const layovers = (flight.layovers as Layover[] | null) ?? []
   const statusColor = FLIGHT_STATUS_COLORS[flight.status] ?? FLIGHT_STATUS_COLORS.unknown
 
@@ -179,7 +181,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
                   </Button>
                 )}
                 {onDelete && (
-                  <Button variant="danger" size="sm" onClick={() => onDelete(flight.id)} className="h-7 px-2">
+                  <Button variant="danger" size="sm" onClick={() => setDeleteConfirm(flight.id)} className="h-7 px-2">
                     <Trash2 size={12} />
                   </Button>
                 )}
@@ -188,6 +190,26 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
           </div>
         )}
       </div>
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} size="sm">
+        <div className="text-center">
+          <div className="mx-auto w-10 h-10 rounded-full bg-rose-400/10 flex items-center justify-center mb-3">
+            <AlertTriangle size={20} className="text-rose-400" />
+          </div>
+          <h3 className="font-display font-semibold text-slate-900 mb-1">Delete flight?</h3>
+          <p className="text-sm text-slate-500 mb-5">
+            {flight.airline_name} {flight.flight_number} · {flight.departure_airport_code} → {flight.arrival_airport_code}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              onClick={() => { onDelete?.(deleteConfirm!); setDeleteConfirm(null) }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   )
 }
