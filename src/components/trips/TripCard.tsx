@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { MoreVertical, Trash2, Globe, Lock } from 'lucide-react'
+import { MoreVertical, Trash2, Globe, Lock, Pencil } from 'lucide-react'
 import type { Trip } from '../../lib/database.types'
 import { formatDate } from '../../lib/utils'
 import { useState, useRef, useEffect } from 'react'
@@ -9,10 +9,11 @@ interface TripCardProps {
   trip: Trip
   onDelete: (id: string) => void
   onTogglePublic: (id: string, current: boolean) => void
+  onEdit: (trip: Trip) => void
   index: number
 }
 
-export function TripCard({ trip, onDelete, onTogglePublic, index }: TripCardProps) {
+export function TripCard({ trip, onDelete, onTogglePublic, onEdit, index }: TripCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -33,11 +34,17 @@ export function TripCard({ trip, onDelete, onTogglePublic, index }: TripCardProp
     >
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
 
-      {/* Emoji header */}
+      {/* Cover image or emoji header */}
       <Link to={`/trip/${trip.id}`} className="block">
-          <div className="h-28 bg-gradient-to-br from-ink-700 to-ink-800 flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-pattern opacity-50" />
-          <span className="text-5xl filter drop-shadow-lg select-none">{trip.cover_emoji ?? '✈️'}</span>
+        <div className="h-28 bg-gradient-to-br from-ink-700 to-ink-800 flex items-center justify-center relative overflow-hidden">
+          {trip.cover_image_url ? (
+            <img src={trip.cover_image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-grid-pattern opacity-50" />
+              <span className="text-5xl filter drop-shadow-lg select-none">{trip.cover_emoji ?? '✈️'}</span>
+            </>
+          )}
         </div>
       </Link>
 
@@ -60,6 +67,13 @@ export function TripCard({ trip, onDelete, onTogglePublic, index }: TripCardProp
                 animate={{ opacity: 1, scale: 1 }}
                 className="absolute right-0 top-full mt-1 z-20 bg-ink-800 border border-ink-600 rounded-xl shadow-xl shadow-black/15 py-1 min-w-[160px]"
               >
+                <button
+                  onClick={() => { onEdit(trip); setMenuOpen(false) }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 hover:bg-ink-700 hover:text-slate-900 transition-colors"
+                >
+                  <Pencil size={12} />
+                  Edit trip
+                </button>
                 <button
                   onClick={() => { onTogglePublic(trip.id, trip.is_public); setMenuOpen(false) }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 hover:bg-ink-700 hover:text-slate-900 transition-colors"

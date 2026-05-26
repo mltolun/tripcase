@@ -5,6 +5,7 @@ export type TripInsert = {
   name: string
   description?: string | null
   cover_emoji?: string | null
+  cover_image_url?: string | null
   start_date?: string | null
   end_date?: string | null
   is_public?: boolean
@@ -74,6 +75,7 @@ export interface Trip {
   name: string
   description: string | null
   cover_emoji: string | null
+  cover_image_url: string | null
   start_date: string | null
   end_date: string | null
   is_public: boolean

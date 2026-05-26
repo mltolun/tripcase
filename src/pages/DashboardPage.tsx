@@ -1,32 +1,33 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
+import { Plus, MapPin } from 'lucide-react'
 import { useTrips } from '../hooks/useTrips'
 import { TripCard } from '../components/trips/TripCard'
+import { EditTripModal } from '../components/trips/EditTripModal'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
+import type { Trip } from '../lib/database.types'
 import toast from 'react-hot-toast'
-
-const EMOJIS = ['✈️', '🌍', '🏖️', '🗺️', '🏔️', '🌊', '🏙️', '🌴', '🎒', '🚂', '🛳️', '🏝️']
 
 export function DashboardPage() {
   const { trips, loading, createTrip, deleteTrip, updateTrip } = useTrips()
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [selectedEmoji, setSelectedEmoji] = useState('✈️')
+  const [editTrip, setEditTrip] = useState<Trip | null>(null)
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setCreating(true)
     const fd = new FormData(e.currentTarget)
+    const city = fd.get('city') as string
     const { error } = await createTrip(
       fd.get('name') as string,
       fd.get('description') as string || undefined,
-      selectedEmoji
+      city || undefined
     )
     if (error) toast.error(error)
-    else { toast.success('Trip created!'); setCreateOpen(false); setSelectedEmoji('✈️') }
+    else { toast.success('Trip created!'); setCreateOpen(false) }
     setCreating(false)
   }
 
@@ -81,6 +82,7 @@ export function DashboardPage() {
               index={i}
               onDelete={handleDelete}
               onTogglePublic={handleTogglePublic}
+              onEdit={setEditTrip}
             />
           ))}
 
@@ -105,26 +107,7 @@ export function DashboardPage() {
         <form onSubmit={handleCreate} className="space-y-4">
           <Input label="Trip name" name="name" required autoFocus placeholder="Summer Europe 2026" />
           <Input label="Description (optional)" name="description" placeholder="2 weeks through Spain and Portugal" />
-
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider font-display">Choose an emoji</span>
-            <div className="flex flex-wrap gap-2">
-              {EMOJIS.map(e => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setSelectedEmoji(e)}
-                  className={`w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-all ${
-                    selectedEmoji === e
-                      ? 'bg-amber-400/20 border-2 border-amber-400/60'
-                      : 'bg-ink-700 border border-ink-600 hover:bg-ink-600'
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
+          <Input label="City / destination" name="city" placeholder="e.g. Paris, Barcelona, Tokyo" icon={<MapPin size={14} />} />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -132,6 +115,16 @@ export function DashboardPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit trip modal */}
+      {editTrip && (
+        <EditTripModal
+          open={!!editTrip}
+          onClose={() => setEditTrip(null)}
+          trip={editTrip}
+          onSave={updateTrip}
+        />
+      )}
     </div>
   )
 }

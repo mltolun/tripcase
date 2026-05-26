@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Plane, Hotel, Car, Globe, Copy } from 'lucide-react'
+import { ArrowLeft, Plus, Plane, Hotel, Car, Globe, Copy, Trash2, Pencil } from 'lucide-react'
 import { useTrips } from '../hooks/useTrips'
 import { useFlights } from '../hooks/useFlights'
 import { useHotels } from '../hooks/useHotels'
@@ -13,6 +13,7 @@ import { HotelCard } from '../components/hotels/HotelCard'
 import { HotelForm } from '../components/hotels/HotelForm'
 import { CarCard } from '../components/cars/CarCard'
 import { CarForm } from '../components/cars/CarForm'
+import { EditTripModal } from '../components/trips/EditTripModal'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
 import type { Flight, Hotel as HotelType, CarRental, FlightInsert, HotelInsert, CarRentalInsert } from '../lib/database.types'
@@ -25,7 +26,7 @@ export function TripPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { trips, updateTrip } = useTrips()
+  const { trips, updateTrip, deleteTrip } = useTrips()
   const trip = trips.find(t => t.id === id)
 
   const { flights, loading: flightsLoading, createFlight, updateFlight, deleteFlight } = useFlights(id ?? '')
@@ -36,6 +37,14 @@ export function TripPage() {
   const [flightModal, setFlightModal] = useState<{ open: boolean; editing?: Flight }>({ open: false })
   const [hotelModal, setHotelModal] = useState<{ open: boolean; editing?: HotelType }>({ open: false })
   const [carModal, setCarModal] = useState<{ open: boolean; editing?: CarRental }>({ open: false })
+  const [editOpen, setEditOpen] = useState(false)
+
+  async function handleDeleteTrip() {
+    if (!confirm('Delete this trip and all its bookings?')) return
+    const { error } = await deleteTrip(trip!.id)
+    if (error) toast.error(error)
+    else { toast.success('Trip deleted'); navigate('/') }
+  }
 
   if (!id) return null
   if (!trip || !user) return (
@@ -77,13 +86,22 @@ export function TripPage() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-2xl">{trip.cover_emoji}</span>
+              {trip.cover_image_url ? (
+                <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0">
+                  <img src={trip.cover_image_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <span className="text-2xl">{trip.cover_emoji ?? '✈️'}</span>
+              )}
               <h1 className="font-display font-bold text-2xl text-slate-900">{trip.name}</h1>
             </div>
             {trip.description && <p className="text-sm text-slate-600 mt-0.5">{trip.description}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil size={13} /> Edit
+          </Button>
           {trip.is_public && (
             <Button variant="secondary" size="sm" onClick={copyShareLink}>
               <Copy size={13} /> Share
@@ -96,6 +114,9 @@ export function TripPage() {
           >
             <Globe size={13} className={trip.is_public ? 'text-sky-400' : ''} />
             {trip.is_public ? 'Public' : 'Private'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleDeleteTrip} className="text-rose-400 hover:text-rose-300">
+            <Trash2 size={13} /> Delete
           </Button>
         </div>
       </div>
@@ -245,6 +266,14 @@ export function TripPage() {
           }}
         />
       </Modal>
+
+      {/* Edit trip modal */}
+      <EditTripModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        trip={trip}
+        onSave={updateTrip}
+      />
     </div>
   )
 }

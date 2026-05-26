@@ -60,6 +60,18 @@ export function generateShareToken() {
     .join('')
 }
 
+export async function fetchCityPhoto(city: string): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({ action: 'query', format: 'json', origin: '*', titles: city.trim(), prop: 'pageimages', pithumbsize: '800' })
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?${params}`)
+    const data = await res.json()
+    const pages = data?.query?.pages
+    if (!pages) return null
+    const page = Object.values(pages as Record<string, any>)[0]
+    return page?.thumbnail?.source ?? null
+  } catch { return null }
+}
+
 export function localDateStr(utcTimestamp: string, localTime: string | null) {
   if (!localTime) return utcTimestamp.slice(0, 10)
   try {

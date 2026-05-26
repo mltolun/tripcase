@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/tripcase/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TripCase — Travel Itinerary Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,12 +14,12 @@
         var redirect = sessionStorage.getItem('redirect');
         if (redirect) {
           sessionStorage.removeItem('redirect');
-          history.replaceState(null, null, '/tripcase' + redirect);
+          history.replaceState(null, null, redirect);
         }
       })();
     </script>
-    <script type="module" crossorigin src="/tripcase/assets/index-B2GsNbBc.js"></script>
-    <link rel="stylesheet" crossorigin href="/tripcase/assets/index-DMZNm-yF.css">
+    <script type="module" crossorigin src="/assets/index-B8VGLaem.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-YWJjW_wO.css">
   </head>
   <body>
     <div id="root"></div>

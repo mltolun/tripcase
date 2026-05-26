@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Trip, TripInsert, TripUpdate } from '../lib/database.types'
 import { useAuth } from '../contexts/AuthContext'
-import { generateShareToken } from '../lib/utils'
+import { generateShareToken, fetchCityPhoto } from '../lib/utils'
 
 export function useTrips() {
   const { user } = useAuth()
@@ -25,13 +25,18 @@ export function useTrips() {
 
   useEffect(() => { fetch() }, [fetch])
 
-  async function createTrip(name: string, description?: string, emoji?: string) {
+  async function createTrip(name: string, description?: string, city?: string) {
     if (!user) return { error: 'Not authenticated' }
+    let cover_image_url: string | null = null
+    if (city) {
+      cover_image_url = await fetchCityPhoto(city)
+    }
     const payload: TripInsert = {
       user_id: user.id,
       name,
       description: description ?? null,
-      cover_emoji: emoji ?? '✈️',
+      cover_emoji: '✈️',
+      cover_image_url,
       is_public: false,
       share_token: generateShareToken(),
     }
