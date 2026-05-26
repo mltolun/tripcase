@@ -9,7 +9,11 @@ export function useCarRentals(tripId: string) {
   const [loading, setLoading] = useState(true)
 
   function sortCars(list: CarRental[]) {
-    return list.sort((a, b) => new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime())
+    return list.sort((a, b) => {
+      const ta = a.pickup_date ? new Date(a.pickup_date).getTime() || Infinity : Infinity
+      const tb = b.pickup_date ? new Date(b.pickup_date).getTime() || Infinity : Infinity
+      return ta - tb
+    })
   }
 
   const fetch = useCallback(async () => {

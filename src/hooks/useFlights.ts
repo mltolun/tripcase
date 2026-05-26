@@ -26,7 +26,11 @@ export function useFlights(tripId: string) {
   useEffect(() => { fetch() }, [fetch])
 
   function sortFlights(list: Flight[]) {
-    return list.sort((a, b) => new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime())
+    return list.sort((a, b) => {
+      const ta = a.departure_time ? new Date(a.departure_time).getTime() || Infinity : Infinity
+      const tb = b.departure_time ? new Date(b.departure_time).getTime() || Infinity : Infinity
+      return ta - tb
+    })
   }
 
   async function createFlight(payload: FlightInsert) {

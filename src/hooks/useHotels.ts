@@ -9,7 +9,11 @@ export function useHotels(tripId: string) {
   const [loading, setLoading] = useState(true)
 
   function sortHotels(list: Hotel[]) {
-    return list.sort((a, b) => new Date(a.check_in_date).getTime() - new Date(b.check_in_date).getTime())
+    return list.sort((a, b) => {
+      const ta = a.check_in_date ? new Date(a.check_in_date).getTime() || Infinity : Infinity
+      const tb = b.check_in_date ? new Date(b.check_in_date).getTime() || Infinity : Infinity
+      return ta - tb
+    })
   }
 
   const fetch = useCallback(async () => {

@@ -59,3 +59,19 @@ export function generateShareToken() {
     .map(b => b.toString(16).padStart(2, '0'))
     .join('')
 }
+
+export function localDateStr(utcTimestamp: string, localTime: string | null) {
+  if (!localTime) return utcTimestamp.slice(0, 10)
+  try {
+    const utc = new Date(utcTimestamp)
+    const [lh, lm] = localTime.split(':').map(Number)
+    const [uh, um] = [utc.getUTCHours(), utc.getUTCMinutes()]
+    let offsetMin = (lh * 60 + lm) - (uh * 60 + um)
+    if (offsetMin > 720) offsetMin -= 1440
+    if (offsetMin < -720) offsetMin += 1440
+    const local = new Date(utc.getTime() + offsetMin * 60000)
+    return local.toISOString().slice(0, 10)
+  } catch {
+    return utcTimestamp.slice(0, 10)
+  }
+}

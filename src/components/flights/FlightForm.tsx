@@ -4,7 +4,7 @@ import { Button } from '../ui/Button'
 import type { FlightInsert, Layover, Flight } from '../../lib/database.types'
 import { Plus, Trash2, Clock } from 'lucide-react'
 import { lookupFlight, parseFlightNumber, type FlightLookupResult } from '../../lib/flightApi'
-import { airlineLogoUrl, formatTime, formatDate } from '../../lib/utils'
+import { airlineLogoUrl, formatTime, formatDate, localDateStr } from '../../lib/utils'
 
 interface FlightFormProps {
   initial?: Partial<Flight>
@@ -80,13 +80,13 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
     const effectiveDepTime = departureTime || lookupResult?.departure_time?.slice(0, 5) || initial?.departure_time?.slice(11, 16) || ''
     const effectiveArrTime = arrivalTime || lookupResult?.arrival_time?.slice(0, 5) || initial?.arrival_time?.slice(11, 16) || ''
 
-    const combinedDeparture = departureDate && effectiveDepTime
-      ? `${departureDate}T${effectiveDepTime}:00Z`
-      : (initial?.departure_time ?? '')
+    if (!departureDate || !effectiveDepTime || !effectiveArrTime) {
+      setLoading(false)
+      return
+    }
 
-    const combinedArrival = departureDate && effectiveArrTime
-      ? `${departureDate}T${effectiveArrTime}:00Z`
-      : (initial?.arrival_time ?? '')
+    const combinedDeparture = `${departureDate}T${effectiveDepTime}:00Z`
+    const combinedArrival = `${departureDate}T${effectiveArrTime}:00Z`
 
     await onSubmit({
       trip_id: tripId,
@@ -148,8 +148,10 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
         const r = lookupResult ?? initial
         if (!r) return null
         const iata = r.airline_iata ?? null
-        const depRaw = lookupResult ? (lookupResult.departure_time_local ?? lookupResult.departure_time) : r.departure_time
-        const arrRaw = lookupResult ? (lookupResult.arrival_time_local ?? lookupResult.arrival_time) : r.arrival_time
+        const depLocal = lookupResult ? (lookupResult.departure_time_local ?? null) : null
+        const arrLocal = lookupResult ? (lookupResult.arrival_time_local ?? null) : null
+        const depUtcFull = lookupResult && departureDate ? `${departureDate}T${lookupResult.departure_time}:00Z` : (r.departure_time ?? '')
+        const arrUtcFull = lookupResult && departureDate ? `${departureDate}T${lookupResult.arrival_time}:00Z` : (r.arrival_time ?? '')
         const depTimeUtc = lookupResult ? lookupResult.departure_time : r.departure_time
         const arrTimeUtc = lookupResult ? lookupResult.arrival_time : r.arrival_time
         return (
@@ -178,12 +180,15 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
           </div>
 
           <div className="text-center mb-3">
-            <span className="text-xs text-slate-500 font-mono">{formatDate(depRaw ?? '', 'EEE d MMM')}</span>
+            <span className="text-xs text-slate-500 font-mono">
+              {formatDate(localDateStr(depUtcFull, depLocal), 'EEE d MMM')}
+              {depLocal && ` · ${formatTime(depUtcFull)}`}
+            </span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <div className="text-center">
               <p className="font-display font-bold text-xl text-slate-900 leading-none">
-                {formatTime(depRaw ?? '') || '--:--'}
+                {formatTime(depLocal ?? depUtcFull) || '--:--'}
               </p>
               <p className="font-mono font-bold text-xs text-amber-400 mt-0.5">{r.departure_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.departure_airport_name}</p>
@@ -213,7 +218,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
             <div className="text-center">
               <p className="font-display font-bold text-xl text-slate-900 leading-none">
-                {formatTime(arrRaw ?? '') || '--:--'}
+                {formatTime(arrLocal ?? arrUtcFull) || '--:--'}
               </p>
               <p className="font-mono font-bold text-xs text-sky-400 mt-0.5">{r.arrival_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.arrival_airport_name}</p>

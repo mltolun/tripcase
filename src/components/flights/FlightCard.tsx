@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, RefreshCw } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
-import { formatDate, formatTime, formatDuration, FLIGHT_STATUS_COLORS, airlineLogoUrl } from '../../lib/utils'
+import { formatDate, formatTime, formatDuration, FLIGHT_STATUS_COLORS, airlineLogoUrl, localDateStr } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { cn } from '../../lib/utils'
@@ -69,7 +69,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               {flight.status}
             </Badge>
             <span className="text-sm text-slate-600 font-mono hidden sm:block">
-              {formatDate(flight.departure_time, 'EEE d MMM')}
+              {formatDate(localDateStr(flight.departure_time, flight.departure_time_local), 'EEE d MMM')}
             </span>
           </div>
         </div>
