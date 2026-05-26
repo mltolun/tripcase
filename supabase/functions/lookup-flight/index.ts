@@ -6,6 +6,96 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const statusMap: Record<string, string> = {
+  Scheduled: 'scheduled',
+  Active: 'active',
+  EnRoute: 'active',
+  Departed: 'active',
+  Approaching: 'active',
+  Landed: 'landed',
+  Arrived: 'landed',
+  Delayed: 'delayed',
+  Cancelled: 'cancelled',
+  Canceled: 'cancelled',
+  Diverted: 'diverted',
+  Unknown: 'unknown',
+}
+
+function extractTime(isoStr: string | null): string | null {
+  if (!isoStr) return null
+  const cleaned = isoStr.replace('Z', '')
+  const parts = cleaned.split('T')
+  if (parts.length < 2) return null
+  return parts[1].slice(0, 5)
+}
+
+function extractDate(isoStr: string | null): string | null {
+  if (!isoStr) return null
+  return isoStr.slice(0, 10)
+}
+
+function extractTimeFromLabel(label: string | null): string | null {
+  if (!label) return null
+  const m = label.match(/(\d{2}:\d{2})/)
+  return m ? m[1] : null
+}
+
+function extractDateFromLabel(label: string | null, fallbackDate: string): string {
+  if (!label) return fallbackDate
+  const m = label.match(/(\w{3}\s+\d{1,2})/)
+  if (!m) return fallbackDate
+  const months: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  }
+  const parts = m[1].split(' ')
+  const month = months[parts[0].toLowerCase().slice(0, 3)] ?? '01'
+  const day = parts[1].padStart(2, '0')
+  return `${fallbackDate.slice(0, 4)}-${month}-${day}`
+}
+
+async function lookupFlightStats(airline: string, number: string, year: number, month: number, day: number) {
+  const url = `https://www.flightstats.com/v2/flight-tracker/${airline}/${number}?year=${year}&month=${month}&date=${day}`
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    }
+  })
+  if (!response.ok) throw new Error(`FlightStats fetch failed: ${response.status}`)
+  const html = await response.text()
+  const $ = cheerio.load(html)
+  const scriptText = $('script')
+    .toArray()
+    .map(el => $(el).text())
+    .find(t => t.includes('__NEXT_DATA__'))
+  if (!scriptText) return null
+  const jsonMatch = scriptText.match(/__NEXT_DATA__\s*=\s*({.*?});/)
+  if (!jsonMatch) return null
+  const nextData = JSON.parse(jsonMatch[1])
+  const flightData = nextData?.props?.initialState?.flightTracker?.flight
+  if (!flightData?.flightId) return null
+  return flightData
+}
+
+async function lookupFlightView(airline: string, number: string, departureDate: string) {
+  const url = `https://app-api.flightview.com/api/v2/flight/${airline}/${number}?departureDate=${departureDate}`
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+      'Accept-Language': 'en-GB',
+      'Referer': `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${departureDate}`,
+      'Origin': 'https://www.flightview.com',
+    }
+  })
+  if (!response.ok) return null
+  const data = await response.json()
+  if (data.emptyResults || !data.flight) return null
+  return data.flight
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -18,65 +108,67 @@ serve(async (req) => {
     const airline = match[1].toUpperCase()
     const number = match[2]
 
+    const depDate = departure_date ?? new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+
     let year: number, month: number, day: number
-    if (departure_date) {
-      const d = new Date(departure_date + 'T00:00:00')
+    {
+      const d = new Date(depDate + 'T00:00:00')
       year = d.getFullYear()
       month = d.getMonth() + 1
       day = d.getDate()
-    } else {
-      const tomorrow = new Date(Date.now() + 86400000)
-      year = tomorrow.getFullYear()
-      month = tomorrow.getMonth() + 1
-      day = tomorrow.getDate()
     }
 
-    const url = `https://www.flightstats.com/v2/flight-tracker/${airline}/${number}?year=${year}&month=${month}&date=${day}`
+    // Try FlightView API (primary — more reliable, wider coverage)
+    const fvFlight = await lookupFlightView(airline, number, depDate)
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
+    if (fvFlight) {
+      const dep = fvFlight.departure ?? {}
+      const arr = fvFlight.arrival ?? {}
+      const ac = fvFlight.aircraft ?? {}
+      const title = fvFlight.titles?.main ?? ''
+
+      const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
+      const airlineName = titleMatch?.[1]?.trim() ?? null
+      const airlineIata = titleMatch?.[2] ?? airline
+      const flightNum = titleMatch ? `${titleMatch[2]}${titleMatch[3]}` : flight_number
+
+      const depTimeLocal = extractTimeFromLabel(dep.scheduledTime)
+      const arrTimeLocal = extractTimeFromLabel(arr.scheduledTime)
+      const depDateLabel = extractDateFromLabel(dep.scheduledTime, depDate)
+      const arrDateLabel = extractDateFromLabel(arr.scheduledTime, depDate)
+
+      const result = {
+        airline_iata: airlineIata,
+        airline_name: airlineName,
+        flight_number: flightNum,
+        departure_airport_code: dep.airportCode ?? null,
+        departure_airport_name: dep.airport ?? null,
+        departure_time: dep.departureDateTime ?? null,
+        departure_time_local: depTimeLocal,
+        departure_date: depDateLabel,
+        departure_terminal: dep.terminal ?? null,
+        departure_gate: dep.gate ?? null,
+        arrival_airport_code: arr.airportCode ?? null,
+        arrival_airport_name: arr.airport ?? null,
+        arrival_time: arr.arrivalDateTime ?? null,
+        arrival_time_local: arrTimeLocal,
+        arrival_date: arrDateLabel,
+        arrival_terminal: arr.terminal ?? null,
+        arrival_gate: arr.gate ?? null,
+        arrival_baggage: arr.baggage ?? null,
+        aircraft_type: ac.name ?? ac.code ?? null,
+        status: statusMap[fvFlight.flightStatus ?? ''] ?? 'scheduled',
       }
-    })
 
-    if (!response.ok) {
-      throw new Error(`FlightStats fetch failed: ${response.status}`)
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const html = await response.text()
-    const $ = cheerio.load(html)
+    // Fallback to FlightStats (gives accurate UTC times)
+    const flightData = await lookupFlightStats(airline, number, year, month, day)
 
-    const scriptText = $('script')
-      .toArray()
-      .map(el => $(el).text())
-      .find(t => t.includes('__NEXT_DATA__'))
-
-    if (!scriptText) throw new Error('No flight data found on page')
-
-    const jsonMatch = scriptText.match(/__NEXT_DATA__\s*=\s*({.*?});/)
-    if (!jsonMatch) throw new Error('Could not parse flight data')
-
-    const nextData = JSON.parse(jsonMatch[1])
-    const flightData = nextData?.props?.initialState?.flightTracker?.flight
-
-    if (!flightData || !flightData.flightId) {
-      throw new Error('Flight not found')
-    }
-
-    function extractTime(isoStr: string | null, isLocal: boolean): string | null {
-      if (!isoStr) return null
-      const cleaned = isoStr.replace('Z', '')
-      const parts = cleaned.split('T')
-      if (parts.length < 2) return null
-      return parts[1].slice(0, 5)
-    }
-
-    function extractDate(isoStr: string | null): string | null {
-      if (!isoStr) return null
-      return isoStr.slice(0, 10)
-    }
+    if (!flightData) throw new Error('Flight not found')
 
     const schedule = flightData.schedule ?? {}
     const depAirport = flightData.departureAirport ?? {}
@@ -90,21 +182,6 @@ serve(async (req) => {
     const arrLocal = schedule.scheduledArrival ?? null
     const arrUtc = schedule.scheduledArrivalUTC ?? null
 
-    const statusMap: Record<string, string> = {
-      Scheduled: 'scheduled',
-      Active: 'active',
-      EnRoute: 'active',
-      Departed: 'active',
-      Approaching: 'active',
-      Landed: 'landed',
-      Arrived: 'landed',
-      Delayed: 'delayed',
-      Cancelled: 'cancelled',
-      Canceled: 'cancelled',
-      Diverted: 'diverted',
-      Unknown: 'unknown',
-    }
-
     const result = {
       airline_iata: header?.carrier?.fs ?? null,
       airline_name: header?.carrier?.name ?? null,
@@ -112,14 +189,14 @@ serve(async (req) => {
       departure_airport_code: depAirport.iata ?? null,
       departure_airport_name: depAirport.name ?? null,
       departure_time: depUtc,
-      departure_time_local: extractTime(depLocal, true),
+      departure_time_local: extractTime(depLocal),
       departure_date: extractDate(depLocal) ?? extractDate(depUtc),
       departure_terminal: depAirport.terminal ?? null,
       departure_gate: depAirport.gate ?? null,
       arrival_airport_code: arrAirport.iata ?? null,
       arrival_airport_name: arrAirport.name ?? null,
       arrival_time: arrUtc,
-      arrival_time_local: extractTime(arrLocal, true),
+      arrival_time_local: extractTime(arrLocal),
       arrival_date: extractDate(arrLocal) ?? extractDate(arrUtc),
       arrival_terminal: arrAirport.terminal ?? null,
       arrival_gate: arrAirport.gate ?? null,
