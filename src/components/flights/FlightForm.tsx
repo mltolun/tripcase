@@ -49,6 +49,16 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
     return () => clearTimeout(timer)
   }, [isEditing, flightCode, departureDate])
 
+  useEffect(() => {
+    if (!lookupResult) return
+    if (!departureTime && lookupResult.departure_time) {
+      setDepartureTime(lookupResult.departure_time.slice(0, 5))
+    }
+    if (!arrivalTime && lookupResult.arrival_time) {
+      setArrivalTime(lookupResult.arrival_time.slice(0, 5))
+    }
+  }, [lookupResult])
+
   function addLayover() {
     setLayovers(prev => [...prev, { airport_code: '', airport_name: '', duration_minutes: 60 }])
   }
