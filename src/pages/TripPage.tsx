@@ -79,12 +79,12 @@ export function TripPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="text-slate-500 hover:text-slate-700 transition-colors p-1.5 rounded-lg hover:bg-ink-800">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to="/" className="text-slate-500 hover:text-slate-700 transition-colors p-1.5 rounded-lg hover:bg-ink-800 shrink-0">
             <ArrowLeft size={16} />
           </Link>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               {trip.cover_image_url ? (
                 <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0">
@@ -93,12 +93,12 @@ export function TripPage() {
               ) : (
                 <span className="text-2xl">{trip.cover_emoji ?? '✈️'}</span>
               )}
-              <h1 className="font-display font-bold text-2xl text-slate-900">{trip.name}</h1>
+              <h1 className="font-display font-bold text-xl sm:text-2xl text-slate-900 truncate">{trip.name}</h1>
             </div>
-            {trip.description && <p className="text-sm text-slate-600 mt-0.5">{trip.description}</p>}
+            {trip.description && <p className="text-sm text-slate-600 mt-0.5 truncate">{trip.description}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil size={13} /> Edit
           </Button>
@@ -122,7 +122,7 @@ export function TripPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-ink-800 p-1 rounded-xl w-fit mb-6 border border-ink-700">
+      <div className="flex items-center gap-1 bg-ink-800 p-1 rounded-xl w-fit max-w-full mb-6 border border-ink-700 overflow-x-auto">
         {TABS.map(({ key, label, icon: Icon, count }) => (
           <button
             key={key}

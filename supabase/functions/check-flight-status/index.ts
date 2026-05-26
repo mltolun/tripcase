@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,49 +12,53 @@ serve(async (req) => {
 
   try {
     const { flight_id, flight_number, departure_date } = await req.json()
-    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY')
+    if (!flight_number) throw new Error('flight_number is required')
 
-    if (!rapidApiKey) throw new Error('RAPIDAPI_KEY not configured')
+    const match = flight_number.match(/^([A-Za-z]{2,3})\s*(\d+)$/)
+    if (!match) throw new Error(`Invalid flight number format: ${flight_number}`)
+    const airline = match[1].toUpperCase()
+    const number = match[2]
 
-    // AeroDataBox API via RapidAPI
-    const flightNum = flight_number.replace(/\s/g, '')
-    const res = await fetch(
-      `https://aerodatabox.p.rapidapi.com/flights/number/${flightNum}/${departure_date}`,
-      {
-        headers: {
-          'X-RapidAPI-Key': rapidApiKey,
-          'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com',
-        },
+    const url = `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${departure_date}`
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
       }
-    )
+    })
 
-    if (!res.ok) throw new Error(`AeroDataBox API error: ${res.status}`)
+    if (!response.ok) {
+      throw new Error(`FlightView fetch failed: ${response.status}`)
+    }
 
-    const data = await res.json()
-    const flightData = Array.isArray(data) ? data[0] : data
+    const html = await response.text()
+    const $ = cheerio.load(html)
 
-    // Map AeroDataBox status to our status
+    const flightStatus =
+      $('.status', '#ffDetails').text().trim() ||
+      $('[class*="status"]').first().text().trim() ||
+      'Scheduled'
+
     const statusMap: Record<string, string> = {
-      Unknown: 'unknown',
-      Expected: 'scheduled',
-      EnRoute: 'active',
-      CheckIn: 'scheduled',
-      Boarding: 'scheduled',
-      GateClosed: 'scheduled',
+      Scheduled: 'scheduled',
+      Active: 'active',
       Departed: 'active',
-      Delayed: 'delayed',
+      'En Route': 'active',
+      EnRoute: 'active',
       Approaching: 'active',
       Landed: 'landed',
       Arrived: 'landed',
+      Delayed: 'delayed',
       Cancelled: 'cancelled',
+      Canceled: 'cancelled',
       Diverted: 'diverted',
-      CanceledUncertain: 'cancelled',
+      Unknown: 'unknown',
     }
 
-    const rawStatus = flightData?.status ?? 'Unknown'
-    const status = statusMap[rawStatus] ?? 'unknown'
+    const status = statusMap[flightStatus] ?? 'unknown'
 
-    // Update the flight in the database
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -63,7 +68,7 @@ serve(async (req) => {
       await supabase.from('flights').update({ status }).eq('id', flight_id)
     }
 
-    return new Response(JSON.stringify({ status, raw: rawStatus }), {
+    return new Response(JSON.stringify({ status, raw: flightStatus, source: 'flightview' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

@@ -71,7 +71,7 @@ export function SharePage() {
 
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 bg-ink-800 p-1 rounded-xl w-fit mb-6 border border-ink-700">
+        <div className="flex items-center gap-1 bg-ink-800 p-1 rounded-xl w-fit max-w-full mb-6 border border-ink-700 overflow-x-auto">
           {TABS.map(({ key, label, icon: Icon, count }) => (
             <button
               key={key}

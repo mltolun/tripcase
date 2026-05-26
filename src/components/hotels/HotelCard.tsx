@@ -50,7 +50,7 @@ export function HotelCard({ hotel, onEdit, onDelete, readonly }: HotelCardProps)
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-ink-700/50 rounded-xl p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Calendar size={10} className="text-emerald-400" />

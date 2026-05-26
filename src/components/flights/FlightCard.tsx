@@ -62,6 +62,9 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <p className="text-sm text-slate-600 font-mono">
                 {flight.flight_number ?? '–'}{flight.aircraft_type ? ` · ${flight.aircraft_type}` : ''}
               </p>
+              <p className="text-xs text-slate-500 font-mono mt-0.5 sm:hidden">
+                {formatDate(localDateStr(flight.departure_time, flight.departure_time_local), 'EEE d MMM')}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -82,7 +85,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <PlaneTakeoff size={12} className="text-amber-400 shrink-0" />
               <span className="text-sm text-slate-600 truncate font-mono">{flight.departure_airport_name ?? flight.departure_airport_code}</span>
             </div>
-            <p className="font-display font-bold text-2xl text-slate-900 leading-none">{formatTime(flight.departure_time_local ?? flight.departure_time)}</p>
+            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.departure_time_local ?? flight.departure_time)}</p>
             <p className="font-mono font-bold text-sm text-amber-400 mt-0.5">{flight.departure_airport_code}</p>
           </div>
 
@@ -112,7 +115,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <span className="text-sm text-slate-600 truncate font-mono">{flight.arrival_airport_name ?? flight.arrival_airport_code}</span>
               <PlaneLanding size={12} className="text-sky-400 shrink-0" />
             </div>
-            <p className="font-display font-bold text-2xl text-slate-900 leading-none">{formatTime(flight.arrival_time_local ?? flight.arrival_time)}</p>
+            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.arrival_time_local ?? flight.arrival_time)}</p>
             <p className="font-mono font-bold text-sm text-sky-400 mt-0.5">{flight.arrival_airport_code}</p>
           </div>
         </div>

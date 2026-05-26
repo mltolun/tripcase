@@ -24,8 +24,6 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
   const [flightCode, setFlightCode] = useState(initial?.flight_number ?? '')
   const [departureDate, setDepartureDate] = useState(initial?.departure_time?.slice(0, 10) ?? '')
   const [lookupResult, setLookupResult] = useState<FlightLookupResult | null>(null)
-  const [departureTime, setDepartureTime] = useState(initial?.departure_time?.slice(11, 16) ?? '')
-  const [arrivalTime, setArrivalTime] = useState(initial?.arrival_time?.slice(11, 16) ?? '')
   const [logoError, setLogoError] = useState(false)
 
   const isEditing = !!initial?.id
@@ -49,16 +47,6 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
     return () => clearTimeout(timer)
   }, [isEditing, flightCode, departureDate])
 
-  useEffect(() => {
-    if (!lookupResult) return
-    if (!departureTime && lookupResult.departure_time) {
-      setDepartureTime(lookupResult.departure_time.slice(0, 5))
-    }
-    if (!arrivalTime && lookupResult.arrival_time) {
-      setArrivalTime(lookupResult.arrival_time.slice(0, 5))
-    }
-  }, [lookupResult])
-
   function addLayover() {
     setLayovers(prev => [...prev, { airport_code: '', airport_name: '', duration_minutes: 60 }])
   }
@@ -77,16 +65,16 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
     const parsed = parseFlightNumber(flightCode.trim())
 
-    const effectiveDepTime = departureTime || lookupResult?.departure_time?.slice(0, 5) || initial?.departure_time?.slice(11, 16) || ''
-    const effectiveArrTime = arrivalTime || lookupResult?.arrival_time?.slice(0, 5) || initial?.arrival_time?.slice(11, 16) || ''
+    const depTime = lookupResult?.departure_time?.slice(0, 5) || initial?.departure_time?.slice(11, 16) || ''
+    const arrTime = lookupResult?.arrival_time?.slice(0, 5) || initial?.arrival_time?.slice(11, 16) || ''
 
-    if (!departureDate || !effectiveDepTime || !effectiveArrTime) {
+    if (!departureDate || !depTime || !arrTime) {
       setLoading(false)
       return
     }
 
-    const combinedDeparture = `${departureDate}T${effectiveDepTime}:00Z`
-    const combinedArrival = `${departureDate}T${effectiveArrTime}:00Z`
+    const combinedDeparture = `${departureDate}T${depTime}:00Z`
+    const combinedArrival = `${departureDate}T${arrTime}:00Z`
 
     await onSubmit({
       trip_id: tripId,
@@ -127,23 +115,6 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
         onChange={e => setDepartureDate(e.target.value)}
         required
       />
-      <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Departure Time"
-          type="time"
-          value={departureTime}
-          onChange={e => setDepartureTime(e.target.value)}
-          required
-        />
-        <Input
-          label="Arrival Time"
-          type="time"
-          value={arrivalTime}
-          onChange={e => setArrivalTime(e.target.value)}
-          required
-        />
-      </div>
-
       {(lookupResult || (isEditing && initial)) && (() => {
         const r = lookupResult ?? initial
         if (!r) return null

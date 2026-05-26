@@ -43,7 +43,7 @@ export function CarCard({ car, onEdit, onDelete, readonly }: CarCardProps) {
         </div>
 
         <div className="mt-4 space-y-2">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-ink-700/50 rounded-xl p-3">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar size={10} className="text-sky-400" />
