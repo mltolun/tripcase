@@ -168,6 +168,13 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               </p>
               <p className="font-mono font-bold text-xs text-amber-400 mt-0.5">{r.departure_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.departure_airport_name}</p>
+              {(lookupResult?.departure_terminal || lookupResult?.departure_gate) && (
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  {lookupResult.departure_terminal && `T${lookupResult.departure_terminal}`}
+                  {lookupResult.departure_terminal && lookupResult.departure_gate && ' · '}
+                  {lookupResult.departure_gate && `Gate ${lookupResult.departure_gate}`}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col items-center gap-1">
@@ -198,6 +205,13 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               </p>
               <p className="font-mono font-bold text-xs text-sky-400 mt-0.5">{r.arrival_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.arrival_airport_name}</p>
+              {(lookupResult?.arrival_terminal || lookupResult?.arrival_gate) && (
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  {lookupResult.arrival_terminal && `T${lookupResult.arrival_terminal}`}
+                  {lookupResult.arrival_terminal && lookupResult.arrival_gate && ' · '}
+                  {lookupResult.arrival_gate && `Gate ${lookupResult.arrival_gate}`}
+                </p>
+              )}
             </div>
           </div>
         </div>
