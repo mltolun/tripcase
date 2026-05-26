@@ -5,6 +5,7 @@ import { Navbar } from './components/layout/Navbar'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { LandingPage } from './pages/LandingPage'
 import { TripPage } from './pages/TripPage'
 import { SharePage } from './pages/SharePage'
 import type { ReactNode } from 'react'
@@ -48,7 +49,7 @@ function AppRoutes() {
             <Navbar />
             <main>
               <Routes>
-                <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                <Route path="/" element={user ? <DashboardPage /> : <LandingPage />} />
                 <Route path="/trip/:id" element={<ProtectedRoute><TripPage /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
