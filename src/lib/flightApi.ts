@@ -8,10 +8,15 @@ export interface FlightLookupResult {
   departure_airport_name: string | null
   departure_time: string | null
   departure_time_local: string | null
+  departure_terminal: string | null
+  departure_gate: string | null
   arrival_airport_code: string | null
   arrival_airport_name: string | null
   arrival_time: string | null
   arrival_time_local: string | null
+  arrival_terminal: string | null
+  arrival_gate: string | null
+  arrival_baggage: string | null
   aircraft_type: string | null
   status: string | null
 }

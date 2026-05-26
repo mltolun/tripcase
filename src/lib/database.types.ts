@@ -28,6 +28,11 @@ export type FlightInsert = {
   arrival_time: string
   departure_time_local?: string | null
   arrival_time_local?: string | null
+  departure_terminal?: string | null
+  departure_gate?: string | null
+  arrival_terminal?: string | null
+  arrival_gate?: string | null
+  arrival_baggage?: string | null
   flight_class?: string | null
   aircraft_type?: string | null
   booking_reference?: string | null
@@ -99,6 +104,11 @@ export interface Flight {
   arrival_time: string
   departure_time_local: string | null
   arrival_time_local: string | null
+  departure_terminal: string | null
+  departure_gate: string | null
+  arrival_terminal: string | null
+  arrival_gate: string | null
+  arrival_baggage: string | null
   flight_class: string | null
   aircraft_type: string | null
   booking_reference: string | null

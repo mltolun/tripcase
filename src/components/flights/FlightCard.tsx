@@ -87,6 +87,13 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
             </div>
             <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.departure_time_local ?? flight.departure_time)}</p>
             <p className="font-mono font-bold text-sm text-amber-400 mt-0.5">{flight.departure_airport_code}</p>
+            {(flight.departure_terminal || flight.departure_gate) && (
+              <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                {flight.departure_terminal && `T${flight.departure_terminal}`}
+                {flight.departure_terminal && flight.departure_gate && ' · '}
+                {flight.departure_gate && `Gate ${flight.departure_gate}`}
+              </p>
+            )}
           </div>
 
           {/* Duration + path */}
@@ -117,6 +124,13 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
             </div>
             <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.arrival_time_local ?? flight.arrival_time)}</p>
             <p className="font-mono font-bold text-sm text-sky-400 mt-0.5">{flight.arrival_airport_code}</p>
+            {(flight.arrival_terminal || flight.arrival_gate) && (
+              <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                {flight.arrival_terminal && `T${flight.arrival_terminal}`}
+                {flight.arrival_terminal && flight.arrival_gate && ' · '}
+                {flight.arrival_gate && `Gate ${flight.arrival_gate}`}
+              </p>
+            )}
           </div>
         </div>
 
@@ -135,9 +149,14 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
         )}
 
         {/* Footer */}
-        {(flight.booking_reference || flight.flight_class || !readonly) && (
+        {(flight.booking_reference || flight.flight_class || flight.arrival_baggage || !readonly) && (
           <div className="mt-4 pt-4 border-t border-ink-700 flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {flight.arrival_baggage && (
+                <span className="text-sm text-slate-600 font-mono">
+                  Baggage: <span className="text-slate-700">{flight.arrival_baggage}</span>
+                </span>
+              )}
               {flight.booking_reference && (
                 <span className="text-sm font-mono text-slate-600">
                   Ref: <span className="text-slate-700 font-medium">{flight.booking_reference}</span>

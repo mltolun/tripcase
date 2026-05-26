@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,145 +10,120 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    let bodyText
-    try {
-      bodyText = await req.text()
-    } catch (e) {
-      throw new Error(`Failed to read request body: ${(e as Error).message}`)
-    }
-    console.log('Request body length:', bodyText?.length)
-
-    if (!bodyText || bodyText.length === 0) {
-      throw new Error('Request body is empty')
-    }
-
-    let parsed
-    try {
-      parsed = JSON.parse(bodyText)
-    } catch (e) {
-      throw new Error(`Failed to parse request body as JSON: ${(e as Error).message}`)
-    }
-
-    const { airline_iata, flight_number } = parsed
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
-    console.log('lookup-flight called', { airline_iata, flight_number, tomorrow })
-
-    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY')
-    if (!rapidApiKey) throw new Error('RAPIDAPI_KEY not configured')
+    const { airline_iata, flight_number } = await req.json()
     if (!flight_number) throw new Error('flight_number is required')
 
-    const flightNum = flight_number.replace(/\s/g, '')
-    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${flightNum}/${tomorrow}?withAircraftImage=false&withLocation=false`
-    console.log('Fetching AeroDataBox URL:', url)
+    const match = flight_number.match(/^([A-Za-z]{2,3})\s*(\d+)$/)
+    if (!match) throw new Error(`Invalid flight number format: ${flight_number}`)
+    const airline = match[1].toUpperCase()
+    const number = match[2]
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 4000)
-    const res = await fetch(url, {
+    const tomorrow = new Date(Date.now() + 86400000)
+    const year = tomorrow.getFullYear()
+    const month = tomorrow.getMonth() + 1
+    const day = tomorrow.getDate()
+
+    const url = `https://www.flightstats.com/v2/flight-tracker/${airline}/${number}?year=${year}&month=${month}&date=${day}`
+
+    const response = await fetch(url, {
       headers: {
-        'X-RapidAPI-Key': rapidApiKey,
-        'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com',
-      },
-      signal: controller.signal,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      }
     })
-    clearTimeout(timeout)
-    console.log('AeroDataBox response status:', res.status)
 
-    const responseText = await res.text()
-    console.log('AeroDataBox response length:', responseText.length, 'status:', res.status)
-
-    if (!res.ok) {
-      console.log('AeroDataBox error body:', responseText.slice(0, 500))
-      throw new Error(`AeroDataBox API error: ${res.status} — ${responseText.slice(0, 200)}`)
+    if (!response.ok) {
+      throw new Error(`FlightStats fetch failed: ${response.status}`)
     }
 
-    if (!responseText || responseText.trim().length === 0) {
-      console.log('AeroDataBox returned empty 200 response')
-      return new Response(JSON.stringify({ error: 'AeroDataBox returned empty response for this flight' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    const html = await response.text()
+    const $ = cheerio.load(html)
+
+    const scriptText = $('script')
+      .toArray()
+      .map(el => $(el).text())
+      .find(t => t.includes('__NEXT_DATA__'))
+
+    if (!scriptText) throw new Error('No flight data found on page')
+
+    const jsonMatch = scriptText.match(/__NEXT_DATA__\s*=\s*({.*?});/)
+    if (!jsonMatch) throw new Error('Could not parse flight data')
+
+    const nextData = JSON.parse(jsonMatch[1])
+    const flightData = nextData?.props?.initialState?.flightTracker?.flight
+
+    if (!flightData || !flightData.flightId) {
+      throw new Error('Flight not found')
     }
 
-    let data
-    try {
-      data = JSON.parse(responseText)
-    } catch (e) {
-      throw new Error(`Failed to parse AeroDataBox response: ${(e as Error).message}`)
-    }
-    const flights = Array.isArray(data) ? data : []
-    console.log('AeroDataBox flights count:', flights.length)
-
-    // The flight number already uniquely identifies a flight, so use the first result
-    // (airline_iata filter is omitted because codeshare flights return the operating carrier,
-    //  e.g. IB3616 comes back as British Airways, not Iberia)
-    const match = flights
-
-    if (match.length === 0) {
-      console.log('No matching flight found')
-      return new Response(JSON.stringify({ error: 'Flight not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    function extractTime(isoStr: string | null, isLocal: boolean): string | null {
+      if (!isoStr) return null
+      const cleaned = isoStr.replace('Z', '')
+      const parts = cleaned.split('T')
+      if (parts.length < 2) return null
+      return parts[1].slice(0, 5)
     }
 
-    const f = match[0]
-    console.log('Raw status from API:', f.status)
+    function extractDate(isoStr: string | null): string | null {
+      if (!isoStr) return null
+      return isoStr.slice(0, 10)
+    }
+
+    const schedule = flightData.schedule ?? {}
+    const depAirport = flightData.departureAirport ?? {}
+    const arrAirport = flightData.arrivalAirport ?? {}
+    const header = flightData.resultHeader ?? {}
+    const statusObj = flightData.status ?? {}
+    const equip = flightData.additionalFlightInfo?.equipment ?? {}
+
+    const depLocal = schedule.scheduledDeparture ?? null
+    const depUtc = schedule.scheduledDepartureUTC ?? null
+    const arrLocal = schedule.scheduledArrival ?? null
+    const arrUtc = schedule.scheduledArrivalUTC ?? null
 
     const statusMap: Record<string, string> = {
-      Unknown: 'unknown', Expected: 'scheduled', EnRoute: 'active',
-      CheckIn: 'scheduled', Boarding: 'scheduled', GateClosed: 'scheduled',
-      Departed: 'active', Delayed: 'delayed', Approaching: 'active',
-      Landed: 'landed', Arrived: 'landed', Cancelled: 'cancelled',
-      Diverted: 'diverted', CanceledUncertain: 'cancelled',
+      Scheduled: 'scheduled',
+      Active: 'active',
+      EnRoute: 'active',
+      Departed: 'active',
+      Approaching: 'active',
+      Landed: 'landed',
+      Arrived: 'landed',
+      Delayed: 'delayed',
+      Cancelled: 'cancelled',
+      Canceled: 'cancelled',
+      Diverted: 'diverted',
+      Unknown: 'unknown',
     }
-
-    function extractLocalTime(t: unknown): string | null {
-      if (!t) return null
-      if (typeof t === 'object' && t !== null) {
-        const obj = t as Record<string, string>
-        const raw = obj.local ?? obj.utc
-        if (!raw) return null
-        const m = raw.match(/(\d{2}:\d{2})/)
-        return m ? m[1] : null
-      }
-      return null
-    }
-
-    function extractUtcTime(t: unknown): string | null {
-      if (!t) return null
-      if (typeof t === 'object' && t !== null) {
-        const obj = t as Record<string, string>
-        if (!obj.utc) return null
-        const m = obj.utc.match(/(\d{2}:\d{2})/)
-        return m ? m[1] : null
-      }
-      return null
-    }
-
-    const mappedStatus = statusMap[f.status ?? ''] ?? 'unknown'
-    console.log('Mapped status:', mappedStatus)
 
     const result = {
-      airline_iata: f.airline?.iata ?? null,
-      airline_name: f.airline?.name ?? null,
-      flight_number: f.flightNumber ?? flightNum,
-      departure_airport_code: f.departure?.airport?.iata ?? null,
-      departure_airport_name: f.departure?.airport?.name ?? null,
-      departure_time: extractUtcTime(f.departure?.scheduledTime),
-      departure_time_local: extractLocalTime(f.departure?.scheduledTime),
-      arrival_airport_code: f.arrival?.airport?.iata ?? null,
-      arrival_airport_name: f.arrival?.airport?.name ?? null,
-      arrival_time: extractUtcTime(f.arrival?.scheduledTime),
-      arrival_time_local: extractLocalTime(f.arrival?.scheduledTime),
-      aircraft_type: f.aircraft?.type ?? f.aircraft?.model ?? null,
-      status: mappedStatus,
+      airline_iata: header?.carrier?.fs ?? null,
+      airline_name: header?.carrier?.name ?? null,
+      flight_number: header?.flightNumber ? `${header.carrier?.fs ?? ''}${header.flightNumber}` : flight_number,
+      departure_airport_code: depAirport.iata ?? null,
+      departure_airport_name: depAirport.name ?? null,
+      departure_time: extractTime(depUtc, false),
+      departure_time_local: extractTime(depLocal, true),
+      departure_date: extractDate(depLocal) ?? extractDate(depUtc),
+      departure_terminal: depAirport.terminal ?? null,
+      departure_gate: depAirport.gate ?? null,
+      arrival_airport_code: arrAirport.iata ?? null,
+      arrival_airport_name: arrAirport.name ?? null,
+      arrival_time: extractTime(arrUtc, false),
+      arrival_time_local: extractTime(arrLocal, true),
+      arrival_date: extractDate(arrLocal) ?? extractDate(arrUtc),
+      arrival_terminal: arrAirport.terminal ?? null,
+      arrival_gate: arrAirport.gate ?? null,
+      arrival_baggage: arrAirport.baggage ?? null,
+      aircraft_type: equip.name ?? equip.iata ?? null,
+      status: statusMap[statusObj.status ?? ''] ?? 'scheduled',
     }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    console.error('lookup-flight error:', (err as Error).message)
     return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
