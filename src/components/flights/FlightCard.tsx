@@ -151,7 +151,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
         )}
 
         {/* Footer */}
-        {(flight.booking_reference || flight.flight_class || flight.arrival_baggage || !readonly) && (
+        {(flight.flight_class || flight.arrival_baggage || !readonly) && (
           <div className="mt-4 pt-4 border-t border-ink-700 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {flight.arrival_baggage && (
@@ -159,7 +159,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
                   Baggage: <span className="text-slate-700">{flight.arrival_baggage}</span>
                 </span>
               )}
-              {flight.booking_reference && (
+              {!readonly && flight.booking_reference && (
                 <span className="text-sm font-mono text-slate-600">
                   Ref: <span className="text-slate-700 font-medium">{flight.booking_reference}</span>
                 </span>

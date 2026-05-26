@@ -73,7 +73,7 @@ export function CarCard({ car, onEdit, onDelete, readonly }: CarCardProps) {
           </div>
         </div>
 
-        {(car.booking_reference || !readonly) && (
+        {!readonly && (
           <div className="mt-4 pt-4 border-t border-ink-700 flex items-center justify-between">
             {car.booking_reference && (
               <span className="text-sm font-mono text-slate-600">

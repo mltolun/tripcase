@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { Input } from '../ui/Input'
+import { DatePicker } from '../ui/DatePicker'
 import { Button } from '../ui/Button'
 import type { FlightInsert, Layover, Flight } from '../../lib/database.types'
 import { Plus, Trash2, Clock } from 'lucide-react'
@@ -107,19 +108,22 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Flight Code"
-        value={flightCode}
-        onChange={e => setFlightCode(e.target.value.toUpperCase())}
-        placeholder="IB0150"
-      />
-      <Input
-        label="Departure Date"
-        type="date"
-        value={departureDate}
-        onChange={e => setDepartureDate(e.target.value)}
-        required
-      />
+      {!isEditing && (
+        <>
+          <Input
+            label="Flight Code"
+            value={flightCode}
+            onChange={e => setFlightCode(e.target.value.toUpperCase())}
+            placeholder="IB0150"
+          />
+          <DatePicker
+            label="Departure Date"
+            value={departureDate}
+            onChange={setDepartureDate}
+            required
+          />
+        </>
+      )}
       {(lookupResult || (isEditing && initial)) && (() => {
         const r = lookupResult ?? initial
         if (!r) return null

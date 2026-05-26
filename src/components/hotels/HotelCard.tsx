@@ -67,11 +67,11 @@ export function HotelCard({ hotel, onEdit, onDelete, readonly }: HotelCardProps)
           </div>
         </div>
 
-        {(hotel.booking_reference || hotel.room_type || !readonly) && (
+        {(hotel.room_type || !readonly) && (
           <div className="mt-4 pt-4 border-t border-ink-700 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {hotel.room_type && <span className="text-sm text-slate-600">{hotel.room_type}</span>}
-              {hotel.booking_reference && (
+              {!readonly && hotel.booking_reference && (
                 <span className="text-sm font-mono text-slate-600">
                   Ref: <span className="text-slate-700">{hotel.booking_reference}</span>
                 </span>
