@@ -65,16 +65,16 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
     const parsed = parseFlightNumber(flightCode.trim())
 
-    const depTime = lookupResult?.departure_time?.slice(0, 5) || initial?.departure_time?.slice(11, 16) || ''
-    const arrTime = lookupResult?.arrival_time?.slice(0, 5) || initial?.arrival_time?.slice(11, 16) || ''
+    const depTime = lookupResult?.departure_time || initial?.departure_time || ''
+    const arrTime = lookupResult?.arrival_time || initial?.arrival_time || ''
 
-    if (!departureDate || !depTime || !arrTime) {
+    if (!depTime || !arrTime) {
       setLoading(false)
       return
     }
 
-    const combinedDeparture = `${departureDate}T${depTime}:00Z`
-    const combinedArrival = `${departureDate}T${arrTime}:00Z`
+    const combinedDeparture = depTime
+    const combinedArrival = arrTime
 
     await onSubmit({
       trip_id: tripId,
@@ -126,10 +126,8 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
         const iata = r.airline_iata ?? null
         const depLocal = lookupResult ? (lookupResult.departure_time_local ?? null) : null
         const arrLocal = lookupResult ? (lookupResult.arrival_time_local ?? null) : null
-        const depUtcFull = lookupResult && departureDate ? `${departureDate}T${lookupResult.departure_time}:00Z` : (r.departure_time ?? '')
-        const arrUtcFull = lookupResult && departureDate ? `${departureDate}T${lookupResult.arrival_time}:00Z` : (r.arrival_time ?? '')
-        const depTimeUtc = lookupResult ? lookupResult.departure_time : r.departure_time
-        const arrTimeUtc = lookupResult ? lookupResult.arrival_time : r.arrival_time
+        const depUtcFull = lookupResult ? (lookupResult.departure_time ?? '') : (r.departure_time ?? '')
+        const arrUtcFull = lookupResult ? (lookupResult.arrival_time ?? '') : (r.arrival_time ?? '')
         return (
         <div className="bg-ink-700/40 border border-ink-600 rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-3">
@@ -181,13 +179,12 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <Clock size={10} />
                 <span className="font-mono">
-                  {depTimeUtc && arrTimeUtc
+                  {depUtcFull && arrUtcFull
                     ? (() => {
-                        const [dh, dm] = depTimeUtc.split(':').map(Number)
-                        const [ah, am] = arrTimeUtc.split(':').map(Number)
-                        let diff = (ah * 60 + am) - (dh * 60 + dm)
-                        if (diff < 0) diff += 24 * 60
-                        return `${Math.floor(diff / 60)}h ${Math.round(diff % 60)}m`
+                        const diffMs = new Date(arrUtcFull).getTime() - new Date(depUtcFull).getTime()
+                        if (isNaN(diffMs) || diffMs < 0) return '--'
+                        const diffMin = Math.round(diffMs / 60000)
+                        return `${Math.floor(diffMin / 60)}h ${Math.round(diffMin % 60)}m`
                       })()
                     : '--'}
                 </span>
