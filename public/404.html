@@ -6,12 +6,8 @@
   <!-- GitHub Pages SPA redirect hack -->
   <script>
     const path = window.location.pathname;
-    const base = '/tripcase';
-    if (path.startsWith(base)) {
-      const rest = path.slice(base.length) || '/';
-      sessionStorage.setItem('redirect', rest + window.location.search);
-    }
-    window.location.replace(base + '/');
+    sessionStorage.setItem('redirect', path + window.location.search);
+    window.location.replace('/');
   </script>
 </head>
 <body></body>
