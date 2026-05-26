@@ -34,7 +34,7 @@ export function useFlights(tripId: string) {
 
   async function updateFlight(id: string, updates: Partial<FlightInsert>) {
     const { error } = await supabase.from('flights').update(updates).eq('id', id)
-    if (!error) setFlights(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f))
+    if (!error) setFlights(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f).sort((a, b) => a.departure_time.localeCompare(b.departure_time)))
     return { error: error?.message ?? null }
   }
 

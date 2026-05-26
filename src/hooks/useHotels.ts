@@ -25,13 +25,13 @@ export function useHotels(tripId: string) {
   async function createHotel(payload: HotelInsert) {
     if (!user) return { error: 'Not authenticated' }
     const { data, error } = await supabase.from('hotels').insert(payload).select().single()
-    if (!error && data) setHotels(prev => [...prev, data as Hotel])
+    if (!error && data) setHotels(prev => [...prev, data as Hotel].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date)))
     return { data, error: error?.message ?? null }
   }
 
   async function updateHotel(id: string, updates: Partial<HotelInsert>) {
     const { error } = await supabase.from('hotels').update(updates).eq('id', id)
-    if (!error) setHotels(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h))
+    if (!error) setHotels(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h).sort((a, b) => a.check_in_date.localeCompare(b.check_in_date)))
     return { error: error?.message ?? null }
   }
 

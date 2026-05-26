@@ -25,13 +25,13 @@ export function useCarRentals(tripId: string) {
   async function createCar(payload: CarRentalInsert) {
     if (!user) return { error: 'Not authenticated' }
     const { data, error } = await supabase.from('car_rentals').insert(payload).select().single()
-    if (!error && data) setCars(prev => [...prev, data as CarRental])
+    if (!error && data) setCars(prev => [...prev, data as CarRental].sort((a, b) => a.pickup_date.localeCompare(b.pickup_date)))
     return { data, error: error?.message ?? null }
   }
 
   async function updateCar(id: string, updates: Partial<CarRentalInsert>) {
     const { error } = await supabase.from('car_rentals').update(updates).eq('id', id)
-    if (!error) setCars(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c))
+    if (!error) setCars(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c).sort((a, b) => a.pickup_date.localeCompare(b.pickup_date)))
     return { error: error?.message ?? null }
   }
 
