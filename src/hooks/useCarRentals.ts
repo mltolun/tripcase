@@ -8,6 +8,10 @@ export function useCarRentals(tripId: string) {
   const [cars, setCars] = useState<CarRental[]>([])
   const [loading, setLoading] = useState(true)
 
+  function sortCars(list: CarRental[]) {
+    return list.sort((a, b) => new Date(a.pickup_date).getTime() - new Date(b.pickup_date).getTime())
+  }
+
   const fetch = useCallback(async () => {
     if (!tripId) return
     setLoading(true)
@@ -16,7 +20,7 @@ export function useCarRentals(tripId: string) {
       .select('*')
       .eq('trip_id', tripId)
       .order('pickup_date', { ascending: true })
-    setCars((data ?? []) as CarRental[])
+    setCars(sortCars((data ?? []) as CarRental[]))
     setLoading(false)
   }, [tripId])
 
@@ -25,13 +29,13 @@ export function useCarRentals(tripId: string) {
   async function createCar(payload: CarRentalInsert) {
     if (!user) return { error: 'Not authenticated' }
     const { data, error } = await supabase.from('car_rentals').insert(payload).select().single()
-    if (!error && data) setCars(prev => [...prev, data as CarRental].sort((a, b) => a.pickup_date.localeCompare(b.pickup_date)))
+    if (!error && data) setCars(prev => sortCars([...prev, data as CarRental]))
     return { data, error: error?.message ?? null }
   }
 
   async function updateCar(id: string, updates: Partial<CarRentalInsert>) {
     const { error } = await supabase.from('car_rentals').update(updates).eq('id', id)
-    if (!error) setCars(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c).sort((a, b) => a.pickup_date.localeCompare(b.pickup_date)))
+    if (!error) setCars(prev => sortCars(prev.map(c => c.id === id ? { ...c, ...updates } : c)))
     return { error: error?.message ?? null }
   }
 

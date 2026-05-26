@@ -16,25 +16,32 @@ export function useFlights(tripId: string) {
       .select('*')
       .eq('trip_id', tripId)
       .order('departure_time', { ascending: true })
-    setFlights((data ?? []) as Flight[])
+    const sorted = ((data ?? []) as Flight[]).sort((a, b) => 
+      new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime()
+    )
+    setFlights(sorted)
     setLoading(false)
   }, [tripId])
 
   useEffect(() => { fetch() }, [fetch])
+
+  function sortFlights(list: Flight[]) {
+    return list.sort((a, b) => new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime())
+  }
 
   async function createFlight(payload: FlightInsert) {
     if (!user) return { error: 'Not authenticated' }
     const { data, error } = await supabase.from('flights').insert(payload).select().single()
     if (!error && data) {
       const f = data as Flight
-      setFlights(prev => [...prev, f].sort((a, b) => a.departure_time.localeCompare(b.departure_time)))
+      setFlights(prev => sortFlights([...prev, f]))
     }
     return { data, error: error?.message ?? null }
   }
 
   async function updateFlight(id: string, updates: Partial<FlightInsert>) {
     const { error } = await supabase.from('flights').update(updates).eq('id', id)
-    if (!error) setFlights(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f).sort((a, b) => a.departure_time.localeCompare(b.departure_time)))
+    if (!error) setFlights(prev => sortFlights(prev.map(f => f.id === id ? { ...f, ...updates } : f)))
     return { error: error?.message ?? null }
   }
 

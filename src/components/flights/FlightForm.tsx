@@ -77,14 +77,14 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
     const parsed = parseFlightNumber(flightCode.trim())
 
-    const effectiveDepTime = departureTime || lookupResult?.departure_time?.slice(0, 5) || ''
-    const effectiveArrTime = arrivalTime || lookupResult?.arrival_time?.slice(0, 5) || ''
+    const effectiveDepTime = departureTime || lookupResult?.departure_time?.slice(0, 5) || initial?.departure_time?.slice(11, 16) || ''
+    const effectiveArrTime = arrivalTime || lookupResult?.arrival_time?.slice(0, 5) || initial?.arrival_time?.slice(11, 16) || ''
 
-    const combinedDeparture = effectiveDepTime && departureDate
+    const combinedDeparture = departureDate && effectiveDepTime
       ? `${departureDate}T${effectiveDepTime}:00Z`
       : (initial?.departure_time ?? '')
 
-    const combinedArrival = effectiveArrTime && departureDate
+    const combinedArrival = departureDate && effectiveArrTime
       ? `${departureDate}T${effectiveArrTime}:00Z`
       : (initial?.arrival_time ?? '')
 
@@ -125,6 +125,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
         type="date"
         value={departureDate}
         onChange={e => setDepartureDate(e.target.value)}
+        required
       />
       <div className="grid grid-cols-2 gap-3">
         <Input
@@ -132,12 +133,14 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
           type="time"
           value={departureTime}
           onChange={e => setDepartureTime(e.target.value)}
+          required
         />
         <Input
           label="Arrival Time"
           type="time"
           value={arrivalTime}
           onChange={e => setArrivalTime(e.target.value)}
+          required
         />
       </div>
 
