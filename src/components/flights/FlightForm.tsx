@@ -37,7 +37,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
     const timer = setTimeout(async () => {
       try {
-        const result = await lookupFlight(parsed.airline, code)
+        const result = await lookupFlight(parsed.airline, code, departureDate)
         setLookupResult(result)
       } catch {
         setLookupResult(null)

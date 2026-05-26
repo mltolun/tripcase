@@ -23,10 +23,11 @@ export interface FlightLookupResult {
 
 export async function lookupFlight(
   airlineIata: string,
-  flightNumber: string
+  flightNumber: string,
+  departureDate?: string
 ): Promise<FlightLookupResult> {
   const { data, error } = await supabase.functions.invoke('lookup-flight', {
-    body: { airline_iata: airlineIata, flight_number: flightNumber },
+    body: { airline_iata: airlineIata, flight_number: flightNumber, departure_date: departureDate ?? null },
   })
 
   if (error) throw new Error(error.message ?? 'Lookup failed')

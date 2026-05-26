@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { airline_iata, flight_number } = await req.json()
+    const { airline_iata, flight_number, departure_date } = await req.json()
     if (!flight_number) throw new Error('flight_number is required')
 
     const match = flight_number.match(/^([A-Za-z]{2,3})\s*(\d+)$/)
@@ -18,10 +18,18 @@ serve(async (req) => {
     const airline = match[1].toUpperCase()
     const number = match[2]
 
-    const tomorrow = new Date(Date.now() + 86400000)
-    const year = tomorrow.getFullYear()
-    const month = tomorrow.getMonth() + 1
-    const day = tomorrow.getDate()
+    let year: number, month: number, day: number
+    if (departure_date) {
+      const d = new Date(departure_date + 'T00:00:00')
+      year = d.getFullYear()
+      month = d.getMonth() + 1
+      day = d.getDate()
+    } else {
+      const tomorrow = new Date(Date.now() + 86400000)
+      year = tomorrow.getFullYear()
+      month = tomorrow.getMonth() + 1
+      day = tomorrow.getDate()
+    }
 
     const url = `https://www.flightstats.com/v2/flight-tracker/${airline}/${number}?year=${year}&month=${month}&date=${day}`
 
