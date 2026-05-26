@@ -57,7 +57,7 @@ export function TripPage() {
 
   function copyShareLink() {
     if (!trip) return
-    navigator.clipboard.writeText(`${window.location.origin}/tripcase/share/${trip.share_token}`)
+    navigator.clipboard.writeText(`${window.location.origin}/share/${trip.share_token}`)
     toast.success('Share link copied!')
   }
 

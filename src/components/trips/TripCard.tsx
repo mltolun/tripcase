@@ -69,7 +69,7 @@ export function TripCard({ trip, onDelete, onTogglePublic, index }: TripCardProp
                 </button>
                 {trip.is_public && (
                   <button
-                    onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/tripcase/share/${trip.share_token}`); setMenuOpen(false) }}
+                    onClick={() => {                     navigator.clipboard.writeText(`${window.location.origin}/share/${trip.share_token}`); setMenuOpen(false) }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-slate-700 hover:bg-ink-700 hover:text-slate-900 transition-colors"
                   >
                     <Globe size={12} className="text-sky-400" />
