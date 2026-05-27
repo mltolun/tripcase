@@ -21,6 +21,7 @@ export interface FlightLookupResult {
   arrival_baggage: string | null
   aircraft_type: string | null
   status: string | null
+  duration_minutes: number | null
 }
 
 export async function lookupFlight(

@@ -27,13 +27,52 @@ export function formatTime(dateStr: string) {
   } catch { return dateStr }
 }
 
-export function formatDuration(startStr: string, endStr: string) {
+export function formatDuration(startStr: string, endStr: string, startLocal?: string | null, endLocal?: string | null) {
   try {
-    const mins = differenceInMinutes(parseISO(endStr), parseISO(startStr))
+    const ensureZ = (s: string) => /[Zz+-]/.test(s) ? s : s + 'Z'
+    const start = new Date(ensureZ(startStr))
+    const end = new Date(ensureZ(endStr))
+
+    if (startLocal && endLocal) {
+      const [sh, sm] = startLocal.split(':').map(Number)
+      const [eh, em] = endLocal.split(':').map(Number)
+      const startLocalMin = sh * 60 + sm
+      const endLocalMin = eh * 60 + em
+      const startUtcMin = start.getUTCHours() * 60 + start.getUTCMinutes()
+      const endUtcMin = end.getUTCHours() * 60 + end.getUTCMinutes()
+
+      const norm = (o: number) => {
+        if (o > 720) o -= 1440
+        if (o < -720) o += 1440
+        return o
+      }
+      const startOffset = norm(startUtcMin - startLocalMin)
+      const endOffset = norm(endUtcMin - endLocalMin)
+
+      let localDiff = endLocalMin - startLocalMin
+      if (localDiff < 0) localDiff += 1440
+
+      let mins = localDiff + (endOffset - startOffset)
+      if (mins < 0) mins += 1440
+      if (mins >= 1440) mins -= 1440
+
+      const h = Math.floor(mins / 60)
+      const m = mins % 60
+      return `${h}h ${m}m`
+    }
+
+    const mins = Math.round((end.getTime() - start.getTime()) / 60000)
     const h = Math.floor(mins / 60)
     const m = mins % 60
     return `${h}h ${m}m`
   } catch { return '--' }
+}
+
+export function formatDurationMinutes(totalMinutes: number | null | undefined) {
+  if (totalMinutes == null || isNaN(totalMinutes)) return '--'
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  return `${h}h ${m}m`
 }
 
 export function nightsBetween(start: string, end: string) {

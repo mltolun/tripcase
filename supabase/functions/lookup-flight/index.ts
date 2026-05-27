@@ -137,20 +137,27 @@ serve(async (req) => {
       const depDateLabel = extractDateFromLabel(dep.scheduledTime, depDate)
       const arrDateLabel = extractDateFromLabel(arr.scheduledTime, depDate)
 
+      const depTimeIso = dep.departureDateTime ?? null
+      const arrTimeIso = arr.arrivalDateTime ?? null
+      let durationMinutes: number | null = null
+      if (depTimeIso && arrTimeIso) {
+        durationMinutes = Math.round((new Date(arrTimeIso).getTime() - new Date(depTimeIso).getTime()) / 60000)
+      }
+
       const result = {
         airline_iata: airlineIata,
         airline_name: airlineName,
         flight_number: flightNum,
         departure_airport_code: dep.airportCode ?? null,
         departure_airport_name: dep.airport ?? null,
-        departure_time: dep.departureDateTime ?? null,
+        departure_time: depTimeIso,
         departure_time_local: depTimeLocal,
         departure_date: depDateLabel,
         departure_terminal: dep.terminal ?? null,
         departure_gate: dep.gate ?? null,
         arrival_airport_code: arr.airportCode ?? null,
         arrival_airport_name: arr.airport ?? null,
-        arrival_time: arr.arrivalDateTime ?? null,
+        arrival_time: arrTimeIso,
         arrival_time_local: arrTimeLocal,
         arrival_date: arrDateLabel,
         arrival_terminal: arr.terminal ?? null,
@@ -158,6 +165,7 @@ serve(async (req) => {
         arrival_baggage: arr.baggage ?? null,
         aircraft_type: ac.name ?? ac.code ?? null,
         status: statusMap[fvFlight.flightStatus ?? ''] ?? 'scheduled',
+        duration_minutes: durationMinutes,
       }
 
       return new Response(JSON.stringify(result), {
@@ -182,6 +190,11 @@ serve(async (req) => {
     const arrLocal = schedule.scheduledArrival ?? null
     const arrUtc = schedule.scheduledArrivalUTC ?? null
 
+    let durationMinutes: number | null = null
+    if (depUtc && arrUtc) {
+      durationMinutes = Math.round((new Date(arrUtc).getTime() - new Date(depUtc).getTime()) / 60000)
+    }
+
     const result = {
       airline_iata: header?.carrier?.fs ?? null,
       airline_name: header?.carrier?.name ?? null,
@@ -203,6 +216,7 @@ serve(async (req) => {
       arrival_baggage: arrAirport.baggage ?? null,
       aircraft_type: equip.name ?? equip.iata ?? null,
       status: statusMap[statusObj.status ?? ''] ?? 'scheduled',
+      duration_minutes: durationMinutes,
     }
 
     return new Response(JSON.stringify(result), {

@@ -5,7 +5,7 @@ import { Button } from '../ui/Button'
 import type { FlightInsert, Layover, Flight } from '../../lib/database.types'
 import { Plus, Trash2, Clock } from 'lucide-react'
 import { lookupFlight, parseFlightNumber, type FlightLookupResult } from '../../lib/flightApi'
-import { airlineLogoUrl, formatTime, formatDate, localDateStr } from '../../lib/utils'
+import { airlineLogoUrl, formatTime, formatDate, localDateStr, formatDurationMinutes } from '../../lib/utils'
 
 interface FlightFormProps {
   initial?: Partial<Flight>
@@ -89,6 +89,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
       arrival_airport_name: lookupResult?.arrival_airport_name ?? initial?.arrival_airport_name ?? null,
       departure_time: combinedDeparture,
       arrival_time: combinedArrival,
+      duration_minutes: lookupResult?.duration_minutes ?? initial?.duration_minutes ?? null,
       departure_time_local: lookupResult?.departure_time_local ?? initial?.departure_time_local ?? null,
       arrival_time_local: lookupResult?.arrival_time_local ?? initial?.arrival_time_local ?? null,
       departure_terminal: lookupResult?.departure_terminal ?? initial?.departure_terminal ?? null,
@@ -183,7 +184,9 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <Clock size={10} />
                 <span className="font-mono">
-                  {depUtcFull && arrUtcFull
+                  {lookupResult?.duration_minutes != null
+                    ? formatDurationMinutes(lookupResult.duration_minutes)
+                    : depUtcFull && arrUtcFull
                     ? (() => {
                         const diffMs = new Date(arrUtcFull).getTime() - new Date(depUtcFull).getTime()
                         if (isNaN(diffMs) || diffMs < 0) return '--'
