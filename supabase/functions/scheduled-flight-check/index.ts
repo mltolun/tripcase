@@ -46,13 +46,18 @@ serve(async () => {
   let checked = 0
   for (const flight of flights) {
     try {
-      const num = flight.flight_number.replace(/\s/g, '')
+      const match = flight.flight_number.match(/^([A-Za-z]{2,3})\s*(\d+)$/)
+      if (!match) continue
+      const airline = match[1].toUpperCase()
+      const number = match[2]
       const date = flight.departure_time.slice(0, 10)
-      const url = `https://www.flightview.com/flight-tracker/${num}?date=${date}`
+      const url = `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${date}`
 
       const res = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
         },
       })
 

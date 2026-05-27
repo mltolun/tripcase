@@ -13,13 +13,14 @@ serve(async (req) => {
   try {
     const { flight_id, flight_number, departure_date } = await req.json()
     if (!flight_number) throw new Error('flight_number is required')
+    const depDate = departure_date ?? new Date().toISOString().slice(0, 10)
 
     const match = flight_number.match(/^([A-Za-z]{2,3})\s*(\d+)$/)
     if (!match) throw new Error(`Invalid flight number format: ${flight_number}`)
     const airline = match[1].toUpperCase()
     const number = match[2]
 
-    const url = `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${departure_date}`
+    const url = `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${depDate}`
 
     const response = await fetch(url, {
       headers: {
