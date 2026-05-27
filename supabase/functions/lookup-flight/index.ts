@@ -60,8 +60,9 @@ function getAirportOffset(airportCode: string, date: Date): number {
 }
 
 function localToUtc(localIso: string, airportCode: string | null): Date {
-  const d = new Date(localIso + (localIso.endsWith('Z') ? '' : 'Z'))
-  if (!airportCode) return d
+  const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
+  const d = new Date(hasTz ? localIso : localIso + 'Z')
+  if (!airportCode || isNaN(d.getTime())) return d
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000)
 }
@@ -221,8 +222,9 @@ serve(async (req) => {
 
     let durationMinutes: number | null = null
     if (depUtc && arrUtc) {
-      const d = new Date(depUtc + (depUtc.endsWith('Z') ? '' : 'Z'))
-      const a = new Date(arrUtc + (arrUtc.endsWith('Z') ? '' : 'Z'))
+      const tz = /[Zz]|[+-]\d{2}:\d{2}$/
+      const d = new Date(tz.test(depUtc) ? depUtc : depUtc + 'Z')
+      const a = new Date(tz.test(arrUtc) ? arrUtc : arrUtc + 'Z')
       durationMinutes = Math.round((a.getTime() - d.getTime()) / 60000)
     }
 
