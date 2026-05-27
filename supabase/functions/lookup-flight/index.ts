@@ -66,23 +66,9 @@ function localToUtc(localIso: string, airportCode: string | null): Date {
   return new Date(d.getTime() + offset * 60000)
 }
 
-function extractTime(isoStr: string | null): string | null {
-  if (!isoStr) return null
-  const cleaned = isoStr.replace('Z', '')
-  const parts = cleaned.split('T')
-  if (parts.length < 2) return null
-  return parts[1].slice(0, 5)
-}
-
 function extractDate(isoStr: string | null): string | null {
   if (!isoStr) return null
   return isoStr.slice(0, 10)
-}
-
-function extractTimeFromLabel(label: string | null): string | null {
-  if (!label) return null
-  const m = label.match(/(\d{2}:\d{2})/)
-  return m ? m[1] : null
 }
 
 function extractDateFromLabel(label: string | null, fallbackDate: string): string {
@@ -177,8 +163,6 @@ serve(async (req) => {
       const airlineIata = titleMatch?.[2] ?? airline
       const flightNum = titleMatch ? `${titleMatch[2]}${titleMatch[3]}` : flight_number
 
-      const depTimeLocal = extractTimeFromLabel(dep.scheduledTime)
-      const arrTimeLocal = extractTimeFromLabel(arr.scheduledTime)
       const depDateLabel = extractDateFromLabel(dep.scheduledTime, depDate)
       const arrDateLabel = extractDateFromLabel(arr.scheduledTime, depDate)
 
@@ -198,14 +182,12 @@ serve(async (req) => {
         departure_airport_code: dep.airportCode ?? null,
         departure_airport_name: dep.airport ?? null,
         departure_time: depTimeIso,
-        departure_time_local: depTimeLocal,
         departure_date: depDateLabel,
         departure_terminal: dep.terminal ?? null,
         departure_gate: dep.gate ?? null,
         arrival_airport_code: arr.airportCode ?? null,
         arrival_airport_name: arr.airport ?? null,
         arrival_time: arrTimeIso,
-        arrival_time_local: arrTimeLocal,
         arrival_date: arrDateLabel,
         arrival_terminal: arr.terminal ?? null,
         arrival_gate: arr.gate ?? null,
@@ -251,14 +233,12 @@ serve(async (req) => {
       departure_airport_code: depAirport.iata ?? null,
       departure_airport_name: depAirport.name ?? null,
       departure_time: depUtc,
-      departure_time_local: extractTime(depLocal),
       departure_date: extractDate(depLocal) ?? extractDate(depUtc),
       departure_terminal: depAirport.terminal ?? null,
       departure_gate: depAirport.gate ?? null,
       arrival_airport_code: arrAirport.iata ?? null,
       arrival_airport_name: arrAirport.name ?? null,
       arrival_time: arrUtc,
-      arrival_time_local: extractTime(arrLocal),
       arrival_date: extractDate(arrLocal) ?? extractDate(arrUtc),
       arrival_terminal: arrAirport.terminal ?? null,
       arrival_gate: arrAirport.gate ?? null,

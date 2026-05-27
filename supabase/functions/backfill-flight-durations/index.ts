@@ -67,7 +67,7 @@ serve(async (req) => {
 
     const { data: flights, error } = await supabase
       .from('flights')
-      .select('id, airline_iata, flight_number, departure_time, arrival_time, departure_time_local')
+      .select('id, airline_iata, flight_number, departure_time, arrival_time')
       .is('duration_minutes', null)
       .not('flight_number', 'is', null)
       .limit(50)

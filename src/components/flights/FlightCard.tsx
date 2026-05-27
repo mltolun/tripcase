@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
-import { formatDate, formatTime, formatDuration, FLIGHT_STATUS_COLORS, airlineLogoUrl, localDateStr } from '../../lib/utils'
+import { formatDate, formatTime, formatDurationMinutes, FLIGHT_STATUS_COLORS, airlineLogoUrl } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
@@ -65,7 +65,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
                 {flight.flight_number ?? '–'}{flight.aircraft_type ? ` · ${flight.aircraft_type}` : ''}
               </p>
               <p className="text-xs text-slate-500 font-mono mt-0.5 sm:hidden">
-                {formatDate(localDateStr(flight.departure_time, flight.departure_time_local), 'EEE d MMM')}
+                {formatDate(flight.departure_time, 'EEE d MMM')}
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               {flight.status}
             </Badge>
             <span className="text-sm text-slate-600 font-mono hidden sm:block">
-              {formatDate(localDateStr(flight.departure_time, flight.departure_time_local), 'EEE d MMM')}
+              {formatDate(flight.departure_time, 'EEE d MMM')}
             </span>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <PlaneTakeoff size={12} className="text-amber-400 shrink-0" />
               <span className="text-sm text-slate-600 truncate font-mono">{flight.departure_airport_name ?? flight.departure_airport_code}</span>
             </div>
-            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.departure_time_local ?? flight.departure_time)}</p>
+            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.departure_time)}</p>
             <p className="font-mono font-bold text-sm text-amber-400 mt-0.5">{flight.departure_airport_code}</p>
             {(flight.departure_terminal || flight.departure_gate) && (
               <p className="text-[10px] text-slate-500 font-mono mt-0.5">
@@ -102,7 +102,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
           <div className="flex flex-col items-center gap-1.5 shrink-0 min-w-[90px]">
             <div className="flex items-center gap-1 text-sm text-slate-600">
               <Clock size={12} />
-              <span className="font-mono">{formatDuration(flight.departure_time, flight.arrival_time, flight.departure_time_local, flight.arrival_time_local, flight.departure_airport_code, flight.arrival_airport_code)}</span>
+              <span className="font-mono">{formatDurationMinutes(flight.duration_minutes)}</span>
             </div>
             <div className="relative w-full h-[2px] bg-ink-600 rounded-full">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-400" />
@@ -124,7 +124,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <span className="text-sm text-slate-600 truncate font-mono">{flight.arrival_airport_name ?? flight.arrival_airport_code}</span>
               <PlaneLanding size={12} className="text-sky-400 shrink-0" />
             </div>
-            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.arrival_time_local ?? flight.arrival_time)}</p>
+            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.arrival_time)}</p>
             <p className="font-mono font-bold text-sm text-sky-400 mt-0.5">{flight.arrival_airport_code}</p>
             {(flight.arrival_terminal || flight.arrival_gate) && (
               <p className="text-[10px] text-slate-500 font-mono mt-0.5">

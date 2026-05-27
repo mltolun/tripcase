@@ -27,8 +27,6 @@ export type FlightInsert = {
   departure_time: string
   arrival_time: string
   duration_minutes?: number | null
-  departure_time_local?: string | null
-  arrival_time_local?: string | null
   departure_terminal?: string | null
   departure_gate?: string | null
   arrival_terminal?: string | null
@@ -104,8 +102,6 @@ export interface Flight {
   departure_time: string
   arrival_time: string
   duration_minutes: number | null
-  departure_time_local: string | null
-  arrival_time_local: string | null
   departure_terminal: string | null
   departure_gate: string | null
   arrival_terminal: string | null

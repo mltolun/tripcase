@@ -5,7 +5,7 @@ import { Button } from '../ui/Button'
 import type { FlightInsert, Layover, Flight } from '../../lib/database.types'
 import { Plus, Trash2, Clock } from 'lucide-react'
 import { lookupFlight, parseFlightNumber, type FlightLookupResult } from '../../lib/flightApi'
-import { airlineLogoUrl, formatTime, formatDate, localDateStr, formatDuration } from '../../lib/utils'
+import { airlineLogoUrl, formatTime, formatDate, formatDurationMinutes } from '../../lib/utils'
 
 interface FlightFormProps {
   initial?: Partial<Flight>
@@ -90,8 +90,6 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
       departure_time: combinedDeparture,
       arrival_time: combinedArrival,
       duration_minutes: lookupResult?.duration_minutes ?? initial?.duration_minutes ?? null,
-      departure_time_local: lookupResult?.departure_time_local ?? initial?.departure_time_local ?? null,
-      arrival_time_local: lookupResult?.arrival_time_local ?? initial?.arrival_time_local ?? null,
       departure_terminal: lookupResult?.departure_terminal ?? initial?.departure_terminal ?? null,
       departure_gate: lookupResult?.departure_gate ?? initial?.departure_gate ?? null,
       arrival_terminal: lookupResult?.arrival_terminal ?? initial?.arrival_terminal ?? null,
@@ -129,10 +127,8 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
         const r = lookupResult ?? initial
         if (!r) return null
         const iata = r.airline_iata ?? null
-        const depLocal = lookupResult ? (lookupResult.departure_time_local ?? null) : null
-        const arrLocal = lookupResult ? (lookupResult.arrival_time_local ?? null) : null
-        const depUtcFull = lookupResult ? (lookupResult.departure_time ?? '') : (r.departure_time ?? '')
-        const arrUtcFull = lookupResult ? (lookupResult.arrival_time ?? '') : (r.arrival_time ?? '')
+        const depTime = lookupResult ? (lookupResult.departure_time ?? '') : (r.departure_time ?? '')
+        const arrTime = lookupResult ? (lookupResult.arrival_time ?? '') : (r.arrival_time ?? '')
         return (
         <div className="bg-ink-700/40 border border-ink-600 rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-3">
@@ -160,14 +156,13 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
           <div className="text-center mb-3">
             <span className="text-xs text-slate-500 font-mono">
-              {formatDate(localDateStr(depUtcFull, depLocal), 'EEE d MMM')}
-              {depLocal && ` · ${formatTime(depUtcFull)}`}
+              {formatDate(depTime, 'EEE d MMM')}
             </span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <div className="text-center">
               <p className="font-display font-bold text-xl text-slate-900 leading-none">
-                {formatTime(depLocal ?? depUtcFull) || '--:--'}
+                {formatTime(depTime) || '--:--'}
               </p>
               <p className="font-mono font-bold text-xs text-amber-400 mt-0.5">{r.departure_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.departure_airport_name}</p>
@@ -184,8 +179,10 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <Clock size={10} />
                 <span className="font-mono">
-                  {depUtcFull && arrUtcFull
-                    ? formatDuration(depUtcFull, arrUtcFull, r.departure_time_local, r.arrival_time_local, r.departure_airport_code, r.arrival_airport_code)
+                  {lookupResult?.duration_minutes != null
+                    ? formatDurationMinutes(lookupResult.duration_minutes)
+                    : depTime && arrTime
+                    ? formatDurationMinutes(Math.round((new Date(arrTime).getTime() - new Date(depTime).getTime()) / 60000))
                     : '--'}
                 </span>
               </div>
@@ -198,7 +195,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
             <div className="text-center">
               <p className="font-display font-bold text-xl text-slate-900 leading-none">
-                {formatTime(arrLocal ?? arrUtcFull) || '--:--'}
+                {formatTime(arrTime) || '--:--'}
               </p>
               <p className="font-mono font-bold text-xs text-sky-400 mt-0.5">{r.arrival_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.arrival_airport_name}</p>
