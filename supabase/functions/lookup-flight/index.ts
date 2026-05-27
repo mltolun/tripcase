@@ -21,6 +21,51 @@ const statusMap: Record<string, string> = {
   Unknown: 'unknown',
 }
 
+const AIRPORT_TZ: Record<string, string> = {
+  JFK: 'America/New_York', LGA: 'America/New_York', EWR: 'America/New_York',
+  BOS: 'America/New_York', DCA: 'America/New_York', IAD: 'America/New_York',
+  PHL: 'America/New_York', CLT: 'America/New_York', ATL: 'America/New_York',
+  MIA: 'America/New_York', TPA: 'America/New_York', MCO: 'America/New_York',
+  DTW: 'America/New_York', ORD: 'America/Chicago', MDW: 'America/Chicago',
+  DFW: 'America/Chicago', IAH: 'America/Chicago', MSP: 'America/Chicago',
+  DEN: 'America/Denver', PHX: 'America/Phoenix', SLC: 'America/Denver',
+  SEA: 'America/Los_Angeles', PDX: 'America/Los_Angeles',
+  SFO: 'America/Los_Angeles', LAX: 'America/Los_Angeles', SAN: 'America/Los_Angeles',
+  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu',
+  LHR: 'Europe/London', LGW: 'Europe/London', CDG: 'Europe/Paris',
+  AMS: 'Europe/Amsterdam', FRA: 'Europe/Berlin', MUC: 'Europe/Berlin',
+  FCO: 'Europe/Rome', MXP: 'Europe/Rome', BCN: 'Europe/Madrid',
+  MAD: 'Europe/Madrid', ZRH: 'Europe/Zurich', VIE: 'Europe/Vienna',
+  CPH: 'Europe/Copenhagen', ARN: 'Europe/Stockholm', OSL: 'Europe/Oslo',
+  HEL: 'Europe/Helsinki', DUB: 'Europe/Dublin', BRU: 'Europe/Brussels',
+  LIS: 'Europe/Lisbon', ATH: 'Europe/Athens', IST: 'Europe/Istanbul',
+  HND: 'Asia/Tokyo', NRT: 'Asia/Tokyo', ICN: 'Asia/Seoul',
+  PVG: 'Asia/Shanghai', PEK: 'Asia/Shanghai', HKG: 'Asia/Hong_Kong',
+  SIN: 'Asia/Singapore', BKK: 'Asia/Bangkok', DEL: 'Asia/Kolkata',
+  BOM: 'Asia/Kolkata', DXB: 'Asia/Dubai',
+  SYD: 'Australia/Sydney', MEL: 'Australia/Sydney', AKL: 'Pacific/Auckland',
+}
+
+function getAirportOffset(airportCode: string, date: Date): number {
+  const tzName = AIRPORT_TZ[airportCode]
+  if (!tzName) return 0
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: tzName, year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+  }).formatToParts(date)
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10)
+  const localMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+  const utcMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds())
+  return (utcMs - localMs) / 60000
+}
+
+function localToUtc(localIso: string, airportCode: string | null): Date {
+  const d = new Date(localIso + (localIso.endsWith('Z') ? '' : 'Z'))
+  if (!airportCode) return d
+  const offset = getAirportOffset(airportCode, d)
+  return new Date(d.getTime() + offset * 60000)
+}
+
 function extractTime(isoStr: string | null): string | null {
   if (!isoStr) return null
   const cleaned = isoStr.replace('Z', '')
@@ -141,7 +186,9 @@ serve(async (req) => {
       const arrTimeIso = arr.arrivalDateTime ?? null
       let durationMinutes: number | null = null
       if (depTimeIso && arrTimeIso) {
-        durationMinutes = Math.round((new Date(arrTimeIso).getTime() - new Date(depTimeIso).getTime()) / 60000)
+        const depUtc = localToUtc(depTimeIso, dep.airportCode ?? null)
+        const arrUtc = localToUtc(arrTimeIso, arr.airportCode ?? null)
+        durationMinutes = Math.round((arrUtc.getTime() - depUtc.getTime()) / 60000)
       }
 
       const result = {
@@ -192,7 +239,9 @@ serve(async (req) => {
 
     let durationMinutes: number | null = null
     if (depUtc && arrUtc) {
-      durationMinutes = Math.round((new Date(arrUtc).getTime() - new Date(depUtc).getTime()) / 60000)
+      const d = new Date(depUtc + (depUtc.endsWith('Z') ? '' : 'Z'))
+      const a = new Date(arrUtc + (arrUtc.endsWith('Z') ? '' : 'Z'))
+      durationMinutes = Math.round((a.getTime() - d.getTime()) / 60000)
     }
 
     const result = {

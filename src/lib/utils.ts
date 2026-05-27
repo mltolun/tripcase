@@ -1,5 +1,48 @@
 import { clsx, type ClassValue } from 'clsx'
-import { format, parseISO, differenceInMinutes, differenceInDays } from 'date-fns'
+import { format, parseISO, differenceInDays } from 'date-fns'
+
+const AIRPORT_TZ: Record<string, string> = {
+  JFK: 'America/New_York', LGA: 'America/New_York', EWR: 'America/New_York',
+  BOS: 'America/New_York', DCA: 'America/New_York', IAD: 'America/New_York',
+  PHL: 'America/New_York', CLT: 'America/New_York', ATL: 'America/New_York',
+  MIA: 'America/New_York', TPA: 'America/New_York', MCO: 'America/New_York',
+  DTW: 'America/New_York', YYZ: 'America/Toronto', YUL: 'America/Toronto',
+  ORD: 'America/Chicago', MDW: 'America/Chicago', DFW: 'America/Chicago',
+  IAH: 'America/Chicago', MSP: 'America/Chicago', STL: 'America/Chicago',
+  MEM: 'America/Chicago', DEN: 'America/Denver', PHX: 'America/Phoenix',
+  SLC: 'America/Denver', SEA: 'America/Los_Angeles', PDX: 'America/Los_Angeles',
+  SFO: 'America/Los_Angeles', LAX: 'America/Los_Angeles', SAN: 'America/Los_Angeles',
+  LAS: 'America/Los_Angeles', OAK: 'America/Los_Angeles', SMF: 'America/Los_Angeles',
+  ANC: 'America/Anchorage', HNL: 'Pacific/Honolulu',
+  LHR: 'Europe/London', LGW: 'Europe/London', STN: 'Europe/London',
+  LTN: 'Europe/London', SEN: 'Europe/London', LCY: 'Europe/London',
+  CDG: 'Europe/Paris', ORY: 'Europe/Paris', AMS: 'Europe/Amsterdam',
+  FRA: 'Europe/Berlin', MUC: 'Europe/Berlin', TXL: 'Europe/Berlin',
+  FCO: 'Europe/Rome', MXP: 'Europe/Rome', BCN: 'Europe/Madrid',
+  MAD: 'Europe/Madrid', ZRH: 'Europe/Zurich', VIE: 'Europe/Vienna',
+  CPH: 'Europe/Copenhagen', ARN: 'Europe/Stockholm', OSL: 'Europe/Oslo',
+  HEL: 'Europe/Helsinki', DUB: 'Europe/Dublin', BRU: 'Europe/Brussels',
+  LIS: 'Europe/Lisbon', ATH: 'Europe/Athens', IST: 'Europe/Istanbul',
+  HND: 'Asia/Tokyo', NRT: 'Asia/Tokyo', KIX: 'Asia/Tokyo',
+  ICN: 'Asia/Seoul', PVG: 'Asia/Shanghai', PEK: 'Asia/Shanghai',
+  HKG: 'Asia/Hong_Kong', SIN: 'Asia/Singapore', BKK: 'Asia/Bangkok',
+  DEL: 'Asia/Kolkata', BOM: 'Asia/Kolkata', DXB: 'Asia/Dubai',
+  SYD: 'Australia/Sydney', MEL: 'Australia/Sydney', BNE: 'Australia/Brisbane',
+  AKL: 'Pacific/Auckland', NAN: 'Pacific/Fiji',
+}
+
+function getAirportOffset(airportCode: string, date: Date): number {
+  const tzName = AIRPORT_TZ[airportCode]
+  if (!tzName) return NaN
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: tzName, year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+  }).formatToParts(date)
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10)
+  const localMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+  const utcMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds())
+  return (utcMs - localMs) / 60000
+}
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs)
@@ -27,7 +70,14 @@ export function formatTime(dateStr: string) {
   } catch { return dateStr }
 }
 
-export function formatDuration(startStr: string, endStr: string, startLocal?: string | null, endLocal?: string | null) {
+export function formatDuration(
+  startStr: string,
+  endStr: string,
+  startLocal?: string | null,
+  endLocal?: string | null,
+  depAirport?: string | null,
+  arrAirport?: string | null,
+) {
   try {
     const ensureZ = (s: string) => /[Zz+-]/.test(s) ? s : s + 'Z'
     const start = new Date(ensureZ(startStr))
@@ -38,24 +88,27 @@ export function formatDuration(startStr: string, endStr: string, startLocal?: st
       const [eh, em] = endLocal.split(':').map(Number)
       const startLocalMin = sh * 60 + sm
       const endLocalMin = eh * 60 + em
-      const startUtcMin = start.getUTCHours() * 60 + start.getUTCMinutes()
-      const endUtcMin = end.getUTCHours() * 60 + end.getUTCMinutes()
 
-      const norm = (o: number) => {
-        if (o > 720) o -= 1440
-        if (o < -720) o += 1440
-        return o
+      let startOffset = getAirportOffset(depAirport ?? '', start)
+      let endOffset = getAirportOffset(arrAirport ?? '', end)
+
+      if (isNaN(startOffset) || isNaN(endOffset)) {
+        const startUtcMin = start.getUTCHours() * 60 + start.getUTCMinutes()
+        const endUtcMin = end.getUTCHours() * 60 + end.getUTCMinutes()
+        const norm = (o: number) => {
+          if (o > 720) o -= 1440
+          if (o < -720) o += 1440
+          return o
+        }
+        startOffset = norm(startUtcMin - startLocalMin)
+        endOffset = norm(endUtcMin - endLocalMin)
       }
-      const startOffset = norm(startUtcMin - startLocalMin)
-      const endOffset = norm(endUtcMin - endLocalMin)
 
-      let localDiff = endLocalMin - startLocalMin
-      if (localDiff < 0) localDiff += 1440
+      let startUtcMin = startLocalMin + startOffset
+      let endUtcMin = endLocalMin + endOffset
+      if (endUtcMin <= startUtcMin) endUtcMin += 1440
 
-      let mins = localDiff + (endOffset - startOffset)
-      if (mins < 0) mins += 1440
-      if (mins >= 1440) mins -= 1440
-
+      const mins = endUtcMin - startUtcMin
       const h = Math.floor(mins / 60)
       const m = mins % 60
       return `${h}h ${m}m`

@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
   --ink-950: #F8FAFC;
   --ink-900: #F1F5F9;

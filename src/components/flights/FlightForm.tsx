@@ -5,7 +5,7 @@ import { Button } from '../ui/Button'
 import type { FlightInsert, Layover, Flight } from '../../lib/database.types'
 import { Plus, Trash2, Clock } from 'lucide-react'
 import { lookupFlight, parseFlightNumber, type FlightLookupResult } from '../../lib/flightApi'
-import { airlineLogoUrl, formatTime, formatDate, localDateStr, formatDurationMinutes } from '../../lib/utils'
+import { airlineLogoUrl, formatTime, formatDate, localDateStr, formatDuration } from '../../lib/utils'
 
 interface FlightFormProps {
   initial?: Partial<Flight>
@@ -184,15 +184,8 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <Clock size={10} />
                 <span className="font-mono">
-                  {lookupResult?.duration_minutes != null
-                    ? formatDurationMinutes(lookupResult.duration_minutes)
-                    : depUtcFull && arrUtcFull
-                    ? (() => {
-                        const diffMs = new Date(arrUtcFull).getTime() - new Date(depUtcFull).getTime()
-                        if (isNaN(diffMs) || diffMs < 0) return '--'
-                        const diffMin = Math.round(diffMs / 60000)
-                        return `${Math.floor(diffMin / 60)}h ${Math.round(diffMin % 60)}m`
-                      })()
+                  {depUtcFull && arrUtcFull
+                    ? formatDuration(depUtcFull, arrUtcFull, r.departure_time_local, r.arrival_time_local, r.departure_airport_code, r.arrival_airport_code)
                     : '--'}
                 </span>
               </div>

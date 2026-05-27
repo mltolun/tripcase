@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
-import { formatDate, formatTime, formatDuration, formatDurationMinutes, FLIGHT_STATUS_COLORS, airlineLogoUrl, localDateStr } from '../../lib/utils'
+import { formatDate, formatTime, formatDuration, FLIGHT_STATUS_COLORS, airlineLogoUrl, localDateStr } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
@@ -102,7 +102,7 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
           <div className="flex flex-col items-center gap-1.5 shrink-0 min-w-[90px]">
             <div className="flex items-center gap-1 text-sm text-slate-600">
               <Clock size={12} />
-              <span className="font-mono">{flight.duration_minutes != null ? formatDurationMinutes(flight.duration_minutes) : formatDuration(flight.departure_time, flight.arrival_time)}</span>
+              <span className="font-mono">{formatDuration(flight.departure_time, flight.arrival_time, flight.departure_time_local, flight.arrival_time_local, flight.departure_airport_code, flight.arrival_airport_code)}</span>
             </div>
             <div className="relative w-full h-[2px] bg-ink-600 rounded-full">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-400" />
