@@ -179,11 +179,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <Clock size={10} />
                 <span className="font-mono">
-                  {lookupResult?.duration_minutes != null
-                    ? formatDurationMinutes(lookupResult.duration_minutes)
-                    : depTime && arrTime
-                    ? formatDurationMinutes(Math.round((new Date(arrTime).getTime() - new Date(depTime).getTime()) / 60000))
-                    : '--'}
+                  {formatDurationMinutes(lookupResult?.duration_minutes ?? initial?.duration_minutes ?? null)}
                 </span>
               </div>
               <div className="relative w-20 h-px bg-ink-600">
