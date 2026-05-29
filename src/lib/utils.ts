@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
-import { format, parseISO, differenceInDays } from 'date-fns'
+import { parseISO, differenceInDays } from 'date-fns'
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs)
@@ -23,7 +23,8 @@ export function formatDate(dateStr: string, fmt = 'EEE, MMM d') {
 export function formatTime(dateStr: string) {
   try {
     if (/^(\d{2}:\d{2})$/.test(dateStr)) return dateStr
-    return format(parseISO(dateStr), 'HH:mm')
+    const m = dateStr.match(/T(\d{2}:\d{2})/)
+    return m ? m[1] : dateStr
   } catch { return dateStr }
 }
 
