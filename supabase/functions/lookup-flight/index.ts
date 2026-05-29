@@ -62,7 +62,7 @@ function getAirportOffset(airportCode: string, date: Date): number {
 function localToUtc(localIso: string, airportCode: string | null): Date {
   const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
   const d = new Date(hasTz ? localIso : localIso + 'Z')
-  if (!airportCode || isNaN(d.getTime())) return d
+  if (hasTz || !airportCode || isNaN(d.getTime())) return d
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000)
 }
@@ -84,6 +84,15 @@ function extractDateFromLabel(label: string | null, fallbackDate: string): strin
   const month = months[parts[0].toLowerCase().slice(0, 3)] ?? '01'
   const day = parts[1].padStart(2, '0')
   return `${fallbackDate.slice(0, 4)}-${month}-${day}`
+}
+
+function parseDurationText(text: string | null | undefined): number | null {
+  if (!text) return null
+  const m = text.match(/^\s*(\d+)\s*hr?s?\s*(?:(\d+)\s*min?s?)?\s*$/i)
+  if (!m) return null
+  const h = parseInt(m[1], 10)
+  const min = m[2] ? parseInt(m[2], 10) : 0
+  return h * 60 + min
 }
 
 async function lookupFlightStats(airline: string, number: string, year: number, month: number, day: number) {
@@ -169,8 +178,8 @@ serve(async (req) => {
 
       const depTimeIso = dep.departureDateTime ?? null
       const arrTimeIso = arr.arrivalDateTime ?? null
-      let durationMinutes: number | null = null
-      if (depTimeIso && arrTimeIso) {
+      let durationMinutes: number | null = parseDurationText(dep.duration)
+      if (durationMinutes == null && depTimeIso && arrTimeIso) {
         const depUtc = localToUtc(depTimeIso, dep.airportCode ?? null)
         const arrUtc = localToUtc(arrTimeIso, arr.airportCode ?? null)
         durationMinutes = Math.round((arrUtc.getTime() - depUtc.getTime()) / 60000)

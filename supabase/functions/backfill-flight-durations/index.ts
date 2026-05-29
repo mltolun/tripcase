@@ -90,9 +90,18 @@ function getAirportOffset(airportCode: string, date: Date): number {
 function localToUtc(localIso: string, airportCode: string | null): Date {
   const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
   const d = new Date(hasTz ? localIso : localIso + 'Z')
-  if (!airportCode || isNaN(d.getTime())) return d
+  if (hasTz || !airportCode || isNaN(d.getTime())) return d
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000)
+}
+
+function parseDurationText(text: string | null | undefined): number | null {
+  if (!text) return null
+  const m = text.match(/^\s*(\d+)\s*hr?s?\s*(?:(\d+)\s*min?s?)?\s*$/i)
+  if (!m) return null
+  const h = parseInt(m[1], 10)
+  const min = m[2] ? parseInt(m[2], 10) : 0
+  return h * 60 + min
 }
 
 function getDurationMinutes(depIso: string | null, arrIso: string | null, depAirport?: string | null, arrAirport?: string | null): number | null {
@@ -146,12 +155,15 @@ serve(async (req) => {
 
       const fvFlight = await lookupFlightView(airline, number, depDate)
       if (fvFlight) {
-        durationMinutes = getDurationMinutes(
-          fvFlight.departure?.departureDateTime ?? null,
-          fvFlight.arrival?.arrivalDateTime ?? null,
-          fvFlight.departure?.airportCode ?? null,
-          fvFlight.arrival?.airportCode ?? null
-        )
+        durationMinutes = parseDurationText(fvFlight.departure?.duration)
+        if (durationMinutes == null) {
+          durationMinutes = getDurationMinutes(
+            fvFlight.departure?.departureDateTime ?? null,
+            fvFlight.arrival?.arrivalDateTime ?? null,
+            fvFlight.departure?.airportCode ?? null,
+            fvFlight.arrival?.airportCode ?? null
+          )
+        }
         source = 'flightview'
       } else {
         const d = new Date(depDate + 'T00:00:00')
