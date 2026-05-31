@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Plane, Hotel, Car, Globe, Copy, Trash2, Pencil } from 'lucide-react'
+import { ArrowLeft, Plus, Plane, Hotel, Car, Globe, Copy, Trash2, Pencil, List, Map as MapIcon } from 'lucide-react'
 import { useTrips } from '../hooks/useTrips'
 import { useFlights } from '../hooks/useFlights'
 import { useHotels } from '../hooks/useHotels'
 import { useCarRentals } from '../hooks/useCarRentals'
 import { useAuth } from '../contexts/AuthContext'
 import { FlightCard } from '../components/flights/FlightCard'
+import { FlightMapView } from '../components/flights/FlightMapView'
 import { FlightForm } from '../components/flights/FlightForm'
 import { HotelCard } from '../components/hotels/HotelCard'
 import { HotelForm } from '../components/hotels/HotelForm'
@@ -38,6 +39,7 @@ export function TripPage() {
   const [hotelModal, setHotelModal] = useState<{ open: boolean; editing?: HotelType }>({ open: false })
   const [carModal, setCarModal] = useState<{ open: boolean; editing?: CarRental }>({ open: false })
   const [editOpen, setEditOpen] = useState(false)
+  const [flightsView, setFlightsView] = useState<'list' | 'map'>('list')
 
   async function handleDeleteTrip() {
     if (!confirm('Delete this trip and all its bookings?')) return
@@ -146,12 +148,36 @@ export function TripPage() {
       <AnimatePresence mode="wait">
         {tab === 'flights' && (
           <motion.div key="flights" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
-            <div className="flex justify-end mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-1 bg-ink-800 border border-ink-700 rounded-lg p-0.5">
+                <button
+                  onClick={() => setFlightsView('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    flightsView === 'list' ? 'bg-ink-700 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-400'
+                  }`}
+                >
+                  <List size={13} /> List
+                </button>
+                <button
+                  onClick={() => setFlightsView('map')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    flightsView === 'map' ? 'bg-ink-700 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-400'
+                  }`}
+                >
+                  <MapIcon size={13} /> Map
+                </button>
+              </div>
               <Button variant="primary" size="sm" onClick={() => setFlightModal({ open: true })}>
                 <Plus size={14} /> Add flight
               </Button>
             </div>
-            {flightsLoading ? <LoadingSkeleton /> : (
+            {flightsLoading ? <LoadingSkeleton /> : flightsView === 'map' ? (
+              flights.length > 0 ? (
+                <FlightMapView flights={flights} />
+              ) : (
+                <EmptyState icon={<Plane size={28} />} label="No flights yet" />
+              )
+            ) : (
               <div className="space-y-3">
                 <AnimatePresence>
                   {flights.map(f => (
