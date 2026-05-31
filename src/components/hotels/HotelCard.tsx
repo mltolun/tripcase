@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Pencil, Trash2, MapPin, Calendar, Moon } from 'lucide-react'
+import { Pencil, Trash2, MapPin, Calendar, Moon, Building2, FileText } from 'lucide-react'
 import type { Hotel } from '../../lib/database.types'
 import { formatDate, nightsBetween } from '../../lib/utils'
 import { Button } from '../ui/Button'
@@ -22,19 +22,17 @@ export function HotelCard({ hotel, onEdit, onDelete, readonly }: HotelCardProps)
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent" />
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center shrink-0">
-              <span className="text-lg">🏨</span>
-            </div>
-            <div>
-              <p className="font-display font-semibold text-slate-900">{hotel.hotel_name}</p>
-              {(hotel.city || hotel.country) && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  <MapPin size={10} className="text-emerald-400" />
-                  <span className="text-sm text-slate-600">{[hotel.city, hotel.country].filter(Boolean).join(', ')}</span>
-                </div>
-              )}
-            </div>
+          <div className="min-w-0">
+            <p className="font-display font-semibold text-slate-900 truncate">{hotel.hotel_name}</p>
+            {hotel.address && (
+              <p className="text-sm text-slate-600 truncate mt-0.5">{hotel.address}</p>
+            )}
+            {(hotel.city || hotel.country) && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <MapPin size={10} className="text-emerald-400 shrink-0" />
+                <span className="text-sm text-slate-600 truncate">{[hotel.city, hotel.country].filter(Boolean).join(', ')}</span>
+              </div>
+            )}
           </div>
           <div className="text-right shrink-0">
             <div className="flex items-center gap-1 justify-end">
@@ -67,22 +65,42 @@ export function HotelCard({ hotel, onEdit, onDelete, readonly }: HotelCardProps)
           </div>
         </div>
 
-        {(hotel.room_type || !readonly) && (
-          <div className="mt-4 pt-4 border-t border-ink-700 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {hotel.room_type && <span className="text-sm text-slate-600">{hotel.room_type}</span>}
-              {!readonly && hotel.booking_reference && (
-                <span className="text-sm font-mono text-slate-600">
-                  Ref: <span className="text-slate-700">{hotel.booking_reference}</span>
-                </span>
-              )}
-            </div>
-            {!readonly && (
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {onEdit && <Button variant="ghost" size="sm" onClick={() => onEdit(hotel)} className="h-7 px-2"><Pencil size={12} /></Button>}
-                {onDelete && <Button variant="danger" size="sm" onClick={() => onDelete(hotel.id)} className="h-7 px-2"><Trash2 size={12} /></Button>}
+        {(hotel.room_type || hotel.booking_reference || hotel.confirmation_number) && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {hotel.room_type && (
+              <div className="bg-ink-700/50 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Building2 size={10} className="text-emerald-400" />
+                  <span className="text-xs text-slate-600 uppercase tracking-wider font-display">Room Type</span>
+                </div>
+                <p className="text-sm font-medium text-slate-800 truncate">{hotel.room_type}</p>
               </div>
             )}
+            {hotel.booking_reference && (
+              <div className="bg-ink-700/50 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <FileText size={10} className="text-emerald-400" />
+                  <span className="text-xs text-slate-600 uppercase tracking-wider font-display">Booking Ref</span>
+                </div>
+                <p className="text-sm font-mono font-medium text-slate-800 truncate">{hotel.booking_reference}</p>
+              </div>
+            )}
+            {hotel.confirmation_number && (
+              <div className="bg-ink-700/50 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <FileText size={10} className="text-emerald-400" />
+                  <span className="text-xs text-slate-600 uppercase tracking-wider font-display">Confirmation</span>
+                </div>
+                <p className="text-sm font-mono font-medium text-slate-800 truncate">{hotel.confirmation_number}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!readonly && (
+          <div className="mt-4 pt-4 border-t border-ink-700 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && <Button variant="ghost" size="sm" onClick={() => onEdit(hotel)} className="h-7 px-2"><Pencil size={12} /></Button>}
+            {onDelete && <Button variant="danger" size="sm" onClick={() => onDelete(hotel.id)} className="h-7 px-2"><Trash2 size={12} /></Button>}
           </div>
         )}
       </div>
