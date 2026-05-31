@@ -33,15 +33,23 @@ interface RouteSegment {
 interface FlightRoute {
   flight: Flight
   segments: RouteSegment[]
+  positions: [number, number][]
   totalDistance: number
   color: string
 }
 
-function getCurveMidpoint(
+function segmentKey(a: string, b: string) {
+  return [a, b].sort().join('-')
+}
+
+function toRad(deg: number) {
+  return (deg * Math.PI) / 180
+}
+
+function curveMidpoint(
   fromLat: number, fromLng: number,
   toLat: number, toLng: number,
-  fromCode: string, toCode: string,
-  offset: number
+  side: number,
 ): [number, number] {
   const midLat = (fromLat + toLat) / 2
   const midLng = (fromLng + toLng) / 2
@@ -49,49 +57,37 @@ function getCurveMidpoint(
   const dLat = toLat - fromLat
   const dLng = toLng - fromLng
 
-  const avgLat = ((fromLat + toLat) / 2 * Math.PI) / 180
+  const avgLat = toRad((fromLat + toLat) / 2)
   const cosLat = Math.max(Math.cos(avgLat), 0.01)
   const adjDLng = dLng * cosLat
   const len = Math.sqrt(dLat * dLat + adjDLng * adjDLng)
   if (len < 1e-6) return [midLat, midLng]
 
-  const perpLat = -adjDLng / len
-  const perpLng = dLat / len
-
-  const canonical = fromCode < toCode
-  const adjustedOffset = canonical ? offset : -offset
-
-  const spacing = 0.8
-  const off = adjustedOffset * spacing
+  const spacing = 0.6
+  const off = side * spacing
 
   return [
-    midLat + perpLat * off,
-    midLng + perpLng * off / cosLat,
+    midLat + (-adjDLng / len) * off,
+    midLng + (dLat / len) * off / cosLat,
   ]
 }
 
-function segmentKey(a: string, b: string) {
-  return [a, b].sort().join('-')
-}
-
 function buildRoutes(flights: Flight[]): FlightRoute[] {
-  const routes = flights.map((f, i) => {
+  const routes: FlightRoute[] = flights.map((f, i) => {
     const dep = getAirportCoords(f.departure_airport_code)
     const arr = getAirportCoords(f.arrival_airport_code)
     const layovers = (f.layovers as Layover[] | null) ?? []
 
     const waypoints: { code: string; lat: number; lng: number }[] = []
-
     if (dep) waypoints.push({ code: f.departure_airport_code, lat: dep.lat, lng: dep.lng })
-
     for (const ly of layovers) {
       const coords = getAirportCoords(ly.airport_code)
       if (coords) waypoints.push({ code: ly.airport_code, lat: coords.lat, lng: coords.lng })
     }
-
     if (arr) waypoints.push({ code: f.arrival_airport_code, lat: arr.lat, lng: arr.lng })
 
     const segments: RouteSegment[] = []
+    const positions: [number, number][] = []
     let totalDistance = 0
 
     for (let s = 0; s < waypoints.length - 1; s++) {
@@ -107,52 +103,40 @@ function buildRoutes(flights: Flight[]): FlightRoute[] {
         toLng: to.lng,
         distance: dist,
       })
+      if (s === 0) positions.push([from.lat, from.lng])
+      positions.push([to.lat, to.lng])
       totalDistance += dist
     }
 
-    return { flight: f, segments, totalDistance, color: ROUTE_COLORS[i % ROUTE_COLORS.length] }
+    return { flight: f, segments, positions, totalDistance, color: ROUTE_COLORS[i % ROUTE_COLORS.length] }
   })
 
-  const overlapGroups = new Map<string, { routeIdx: number; segIdx: number }[]>()
+  const overlapGroups = new Map<string, { routeIdx: number }[]>()
   for (let ri = 0; ri < routes.length; ri++) {
-    for (let si = 0; si < routes[ri].segments.length; si++) {
-      const s = routes[ri].segments[si]
-      const key = segmentKey(s.fromCode, s.toCode)
-      const list = overlapGroups.get(key) ?? []
-      list.push({ routeIdx: ri, segIdx: si })
-      overlapGroups.set(key, list)
-    }
+    const s = routes[ri].segments[0]
+    const key = segmentKey(s.fromCode, s.toCode)
+    const list = overlapGroups.get(key) ?? []
+    list.push({ routeIdx: ri })
+    overlapGroups.set(key, list)
   }
 
-  const segmentOffsets = new Map<string, number>()
   for (const [, list] of overlapGroups) {
     if (list.length < 2) continue
     const mid = (list.length - 1) / 2
     list.forEach((item, idx) => {
-      const key = `${item.routeIdx}-${item.segIdx}`
-      segmentOffsets.set(key, idx - mid)
+      const r = routes[item.routeIdx]
+      const seg = r.segments[0]
+      const side = idx - mid
+      const midP = curveMidpoint(seg.fromLat, seg.fromLng, seg.toLat, seg.toLng, seg.fromCode < seg.toCode ? side : -side)
+      r.positions = [
+        [seg.fromLat, seg.fromLng],
+        midP,
+        [seg.toLat, seg.toLng],
+      ]
     })
   }
 
-  for (let ri = 0; ri < routes.length; ri++) {
-    for (let si = 0; si < routes[ri].segments.length; si++) {
-      const key = `${ri}-${si}`
-      const offset = segmentOffsets.get(key) ?? 0
-      if (offset !== 0) {
-        const s = routes[ri].segments[si]
-        ;(s as any).curveOffset = offset
-      }
-    }
-  }
-
   return routes
-}
-
-function getSegmentPositions(seg: RouteSegment): [number, number][] {
-  const offset = (seg as any).curveOffset as number | undefined
-  if (offset == null || offset === 0) return [[seg.fromLat, seg.fromLng], [seg.toLat, seg.toLng]]
-  const mid = getCurveMidpoint(seg.fromLat, seg.fromLng, seg.toLat, seg.toLng, seg.fromCode, seg.toCode, offset)
-  return [[seg.fromLat, seg.fromLng], mid, [seg.toLat, seg.toLng]]
 }
 
 function getBounds(routes: FlightRoute[]) {
@@ -244,9 +228,9 @@ export function FlightMapView({ flights }: FlightMapViewProps) {
 
             return (
               <div key={route.flight.id}>
-                {route.segments.length > 0 && (
+                {route.positions.length > 1 && (
                   <Polyline
-                    positions={route.segments.flatMap(s => getSegmentPositions(s))}
+                    positions={route.positions}
                     pathOptions={{ color: route.color, weight: 3, opacity: 0.8 }}
                   />
                 )}
