@@ -37,8 +37,41 @@ interface FlightRoute {
   color: string
 }
 
+function getCurveMidpoint(
+  fromLat: number, fromLng: number,
+  toLat: number, toLng: number,
+  offset: number
+): [number, number] {
+  const midLat = (fromLat + toLat) / 2
+  const midLng = (fromLng + toLng) / 2
+
+  const dLat = toLat - fromLat
+  const dLng = toLng - fromLng
+
+  const avgLat = ((fromLat + toLat) / 2 * Math.PI) / 180
+  const cosLat = Math.max(Math.cos(avgLat), 0.01)
+  const adjDLng = dLng * cosLat
+  const len = Math.sqrt(dLat * dLat + adjDLng * adjDLng)
+  if (len < 1e-6) return [midLat, midLng]
+
+  const perpLat = -adjDLng / len
+  const perpLng = dLat / len
+
+  const spacing = 0.12
+  const off = offset * spacing
+
+  return [
+    midLat + perpLat * off,
+    midLng + perpLng * off / cosLat,
+  ]
+}
+
+function segmentKey(a: string, b: string) {
+  return [a, b].sort().join('-')
+}
+
 function buildRoutes(flights: Flight[]): FlightRoute[] {
-  return flights.map((f, i) => {
+  const routes = flights.map((f, i) => {
     const dep = getAirportCoords(f.departure_airport_code)
     const arr = getAirportCoords(f.arrival_airport_code)
     const layovers = (f.layovers as Layover[] | null) ?? []
@@ -75,6 +108,47 @@ function buildRoutes(flights: Flight[]): FlightRoute[] {
 
     return { flight: f, segments, totalDistance, color: ROUTE_COLORS[i % ROUTE_COLORS.length] }
   })
+
+  const overlapGroups = new Map<string, { routeIdx: number; segIdx: number }[]>()
+  for (let ri = 0; ri < routes.length; ri++) {
+    for (let si = 0; si < routes[ri].segments.length; si++) {
+      const s = routes[ri].segments[si]
+      const key = segmentKey(s.fromCode, s.toCode)
+      const list = overlapGroups.get(key) ?? []
+      list.push({ routeIdx: ri, segIdx: si })
+      overlapGroups.set(key, list)
+    }
+  }
+
+  const segmentOffsets = new Map<string, number>()
+  for (const [, list] of overlapGroups) {
+    if (list.length < 2) continue
+    const mid = (list.length - 1) / 2
+    list.forEach((item, idx) => {
+      const key = `${item.routeIdx}-${item.segIdx}`
+      segmentOffsets.set(key, idx - mid)
+    })
+  }
+
+  for (let ri = 0; ri < routes.length; ri++) {
+    for (let si = 0; si < routes[ri].segments.length; si++) {
+      const key = `${ri}-${si}`
+      const offset = segmentOffsets.get(key) ?? 0
+      if (offset !== 0) {
+        const s = routes[ri].segments[si]
+        ;(s as any).curveOffset = offset
+      }
+    }
+  }
+
+  return routes
+}
+
+function getSegmentPositions(seg: RouteSegment): [number, number][] {
+  const offset = (seg as any).curveOffset as number | undefined
+  if (!offset) return [[seg.fromLat, seg.fromLng], [seg.toLat, seg.toLng]]
+  const mid = getCurveMidpoint(seg.fromLat, seg.fromLng, seg.toLat, seg.toLng, offset)
+  return [[seg.fromLat, seg.fromLng], mid, [seg.toLat, seg.toLng]]
 }
 
 function getBounds(routes: FlightRoute[]) {
@@ -162,19 +236,13 @@ export function FlightMapView({ flights }: FlightMapViewProps) {
           <MapBounds bounds={bounds} />
 
           {routes.map((route) => {
-            const positions: [number, number][] = []
-            for (const s of route.segments) {
-              if (positions.length === 0) positions.push([s.fromLat, s.fromLng])
-              positions.push([s.toLat, s.toLng])
-            }
-
             const visited = new Set<string>()
 
             return (
               <div key={route.flight.id}>
-                {positions.length > 1 && (
+                {route.segments.length > 0 && (
                   <Polyline
-                    positions={positions}
+                    positions={route.segments.flatMap(s => getSegmentPositions(s))}
                     pathOptions={{ color: route.color, weight: 3, opacity: 0.8 }}
                   />
                 )}
