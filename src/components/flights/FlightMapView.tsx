@@ -110,11 +110,7 @@ function buildRoutes(flights: Flight[]): FlightRoute[] {
       totalDistance += dist
     }
 
-    const labelPos: [number, number] = positions.length === 3
-      ? [positions[1][0], positions[1][1]]
-      : [(positions[0][0] + positions[positions.length - 1][0]) / 2, (positions[0][1] + positions[positions.length - 1][1]) / 2]
-
-    return { flight: f, order: i + 1, labelPos, segments, positions, totalDistance, color: ROUTE_COLORS[i % ROUTE_COLORS.length] }
+    return { flight: f, order: i + 1, labelPos: [(positions[0][0] + positions[positions.length - 1][0]) / 2, (positions[0][1] + positions[positions.length - 1][1]) / 2], segments, positions, totalDistance, color: ROUTE_COLORS[i % ROUTE_COLORS.length] }
   })
 
   const overlapGroups = new Map<string, { routeIdx: number }[]>()
@@ -139,6 +135,7 @@ function buildRoutes(flights: Flight[]): FlightRoute[] {
         midP,
         [seg.toLat, seg.toLng],
       ]
+      r.labelPos = midP
     })
   }
 
