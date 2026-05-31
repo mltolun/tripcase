@@ -34,6 +34,8 @@ async function fetchFlightViewDuration(airline: string, number: string, departur
   const arr = data.flight.arrival ?? {}
 
   let durationMinutes = parseDurationText(dep.duration)
+  if (durationMinutes == null) durationMinutes = parseDurationText(arr.duration)
+  if (durationMinutes == null) durationMinutes = parseDurationText(data.flight.duration)
   if (durationMinutes == null && dep.departureDateTime && arr.arrivalDateTime) {
     const d = new Date(dep.departureDateTime)
     const a = new Date(arr.arrivalDateTime)
@@ -41,6 +43,7 @@ async function fetchFlightViewDuration(airline: string, number: string, departur
       durationMinutes = Math.round((a.getTime() - d.getTime()) / 60000)
     }
   }
+  if (durationMinutes != null && durationMinutes <= 0) durationMinutes = null
 
   return durationMinutes
 }

@@ -34,6 +34,7 @@ export function formatDuration(startStr: string, endStr: string) {
     const start = new Date(ensureZ(startStr))
     const end = new Date(ensureZ(endStr))
     const mins = Math.round((end.getTime() - start.getTime()) / 60000)
+    if (mins <= 0) return '--'
     const h = Math.floor(mins / 60)
     const m = mins % 60
     return `${h}h ${m}m`
@@ -41,7 +42,7 @@ export function formatDuration(startStr: string, endStr: string) {
 }
 
 export function formatDurationMinutes(totalMinutes: number | null | undefined) {
-  if (totalMinutes == null || isNaN(totalMinutes)) return '--'
+  if (totalMinutes == null || isNaN(totalMinutes) || totalMinutes <= 0) return '--'
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
   return `${h}h ${m}m`

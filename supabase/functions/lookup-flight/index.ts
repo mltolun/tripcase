@@ -179,11 +179,14 @@ serve(async (req) => {
       const depTimeIso = dep.departureDateTime ?? null
       const arrTimeIso = arr.arrivalDateTime ?? null
       let durationMinutes: number | null = parseDurationText(dep.duration)
+      if (durationMinutes == null) durationMinutes = parseDurationText(arr.duration)
+      if (durationMinutes == null) durationMinutes = parseDurationText(fvFlight.duration)
       if (durationMinutes == null && depTimeIso && arrTimeIso) {
         const depUtc = localToUtc(depTimeIso, dep.airportCode ?? null)
         const arrUtc = localToUtc(arrTimeIso, arr.airportCode ?? null)
         durationMinutes = Math.round((arrUtc.getTime() - depUtc.getTime()) / 60000)
       }
+      if (durationMinutes != null && durationMinutes <= 0) durationMinutes = null
 
       const result = {
         airline_iata: airlineIata,
@@ -235,6 +238,7 @@ serve(async (req) => {
       const d = new Date(tz.test(depUtc) ? depUtc : depUtc + 'Z')
       const a = new Date(tz.test(arrUtc) ? arrUtc : arrUtc + 'Z')
       durationMinutes = Math.round((a.getTime() - d.getTime()) / 60000)
+      if (durationMinutes <= 0) durationMinutes = null
     }
 
     const result = {

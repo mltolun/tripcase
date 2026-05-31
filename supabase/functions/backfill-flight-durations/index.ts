@@ -156,6 +156,8 @@ serve(async (req) => {
       const fvFlight = await lookupFlightView(airline, number, depDate)
       if (fvFlight) {
         durationMinutes = parseDurationText(fvFlight.departure?.duration)
+        if (durationMinutes == null) durationMinutes = parseDurationText(fvFlight.arrival?.duration)
+        if (durationMinutes == null) durationMinutes = parseDurationText(fvFlight.duration)
         if (durationMinutes == null) {
           durationMinutes = getDurationMinutes(
             fvFlight.departure?.departureDateTime ?? null,
