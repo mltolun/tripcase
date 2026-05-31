@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import WebSocket from 'ws'
 import * as cheerio from 'cheerio'
 
 const supabaseUrl = process.env.SUPABASE_URL
@@ -9,7 +10,9 @@ if (!supabaseUrl || !supabaseServiceKey) {
   process.exit(1)
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  realtime: { transport: WebSocket },
+})
 
 const statusMap = {
   Scheduled: 'scheduled',
