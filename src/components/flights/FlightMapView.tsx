@@ -32,6 +32,8 @@ interface RouteSegment {
 
 interface FlightRoute {
   flight: Flight
+  order: number
+  labelPos: [number, number]
   segments: RouteSegment[]
   positions: [number, number][]
   totalDistance: number
@@ -108,7 +110,11 @@ function buildRoutes(flights: Flight[]): FlightRoute[] {
       totalDistance += dist
     }
 
-    return { flight: f, segments, positions, totalDistance, color: ROUTE_COLORS[i % ROUTE_COLORS.length] }
+    const labelPos: [number, number] = positions.length === 3
+      ? [positions[1][0], positions[1][1]]
+      : [(positions[0][0] + positions[positions.length - 1][0]) / 2, (positions[0][1] + positions[positions.length - 1][1]) / 2]
+
+    return { flight: f, order: i + 1, labelPos, segments, positions, totalDistance, color: ROUTE_COLORS[i % ROUTE_COLORS.length] }
   })
 
   const overlapGroups = new Map<string, { routeIdx: number }[]>()
@@ -202,7 +208,7 @@ export function FlightMapView({ flights }: FlightMapViewProps) {
         <div className="flex items-center gap-2 flex-wrap">
           {routes.map((r) => (
             <span key={r.flight.id} className="flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
-              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: r.color }} />
+              <span className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold font-mono text-white shrink-0" style={{ backgroundColor: r.color }}>{r.order}</span>
               {r.flight.departure_airport_code}–{r.flight.arrival_airport_code}
               <span className="font-mono">({r.totalDistance}km)</span>
             </span>
@@ -234,6 +240,16 @@ export function FlightMapView({ flights }: FlightMapViewProps) {
                     pathOptions={{ color: route.color, weight: 3, opacity: 0.8 }}
                   />
                 )}
+
+                <Marker
+                  position={route.labelPos}
+                  icon={L.divIcon({
+                    className: '',
+                    html: `<div style="width:22px;height:22px;border-radius:50%;background:${route.color};color:white;font-size:11px;font-weight:700;font-family:monospace;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.35)">${route.order}</div>`,
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11],
+                  })}
+                />
 
                 {route.segments.map((seg) => {
                   const markerKey = `${route.flight.id}-${seg.fromCode}`
