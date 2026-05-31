@@ -40,6 +40,7 @@ interface FlightRoute {
 function getCurveMidpoint(
   fromLat: number, fromLng: number,
   toLat: number, toLng: number,
+  fromCode: string, toCode: string,
   offset: number
 ): [number, number] {
   const midLat = (fromLat + toLat) / 2
@@ -57,8 +58,11 @@ function getCurveMidpoint(
   const perpLat = -adjDLng / len
   const perpLng = dLat / len
 
-  const spacing = 0.12
-  const off = offset * spacing
+  const canonical = fromCode < toCode
+  const adjustedOffset = canonical ? offset : -offset
+
+  const spacing = 0.8
+  const off = adjustedOffset * spacing
 
   return [
     midLat + perpLat * off,
@@ -146,8 +150,8 @@ function buildRoutes(flights: Flight[]): FlightRoute[] {
 
 function getSegmentPositions(seg: RouteSegment): [number, number][] {
   const offset = (seg as any).curveOffset as number | undefined
-  if (!offset) return [[seg.fromLat, seg.fromLng], [seg.toLat, seg.toLng]]
-  const mid = getCurveMidpoint(seg.fromLat, seg.fromLng, seg.toLat, seg.toLng, offset)
+  if (offset == null || offset === 0) return [[seg.fromLat, seg.fromLng], [seg.toLat, seg.toLng]]
+  const mid = getCurveMidpoint(seg.fromLat, seg.fromLng, seg.toLat, seg.toLng, seg.fromCode, seg.toCode, offset)
   return [[seg.fromLat, seg.fromLng], mid, [seg.toLat, seg.toLng]]
 }
 
