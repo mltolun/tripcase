@@ -218,9 +218,9 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
         {lookupResult?.status && (
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-slate-400 uppercase tracking-wider font-display">Status</label>
-            <div className="bg-ink-800 border border-ink-600 rounded-xl px-3 py-2.5 text-sm text-slate-700 font-mono capitalize">
+            <span className="text-sm text-slate-500 font-mono capitalize">
               {lookupResult.status.toLowerCase()}
-            </div>
+            </span>
           </div>
         )}
       </div>
