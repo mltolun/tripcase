@@ -129,6 +129,8 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
         const iata = r.airline_iata ?? null
         const depTime = lookupResult ? (lookupResult.departure_time ?? '') : (r.departure_time ?? '')
         const arrTime = lookupResult ? (lookupResult.arrival_time ?? '') : (r.arrival_time ?? '')
+        const depAirport = lookupResult?.departure_airport_code ?? initial?.departure_airport_code
+        const arrAirport = lookupResult?.arrival_airport_code ?? initial?.arrival_airport_code
         return (
         <div className="bg-ink-700/40 border border-ink-600 rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-3">
@@ -156,13 +158,13 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
           <div className="text-center mb-3">
             <span className="text-xs text-slate-500 font-mono">
-              {formatDate(depTime, 'EEE d MMM')}
+              {formatDate(depTime, 'EEE d MMM', depAirport)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <div className="text-center">
               <p className="font-display font-bold text-xl text-slate-900 leading-none">
-                {formatTime(depTime) || '--:--'}
+                {formatTime(depTime, depAirport) || '--:--'}
               </p>
               <p className="font-mono font-bold text-xs text-amber-400 mt-0.5">{r.departure_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.departure_airport_name}</p>
@@ -191,7 +193,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
 
             <div className="text-center">
               <p className="font-display font-bold text-xl text-slate-900 leading-none">
-                {formatTime(arrTime) || '--:--'}
+                {formatTime(arrTime, arrAirport) || '--:--'}
               </p>
               <p className="font-mono font-bold text-xs text-sky-400 mt-0.5">{r.arrival_airport_code}</p>
               <p className="text-[10px] text-slate-500 truncate max-w-24">{r.arrival_airport_name}</p>

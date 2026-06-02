@@ -305,11 +305,11 @@ function FlightPopupContent({ flight }: { flight: Flight }) {
       </div>
       <div className="flex justify-between gap-4">
         <span className="text-slate-500">{flight.departure_airport_code}</span>
-        <span className="font-mono">{formatDate(flight.departure_time, 'EEE d MMM')} {formatTime(flight.departure_time)}</span>
+        <span className="font-mono">{formatDate(flight.departure_time, 'EEE d MMM', flight.departure_airport_code)} {formatTime(flight.departure_time, flight.departure_airport_code)}</span>
       </div>
       <div className="flex justify-between gap-4">
         <span className="text-slate-500">{flight.arrival_airport_code}</span>
-        <span className="font-mono">{formatDate(flight.arrival_time, 'EEE d MMM')} {formatTime(flight.arrival_time)}</span>
+        <span className="font-mono">{formatDate(flight.arrival_time, 'EEE d MMM', flight.arrival_airport_code)} {formatTime(flight.arrival_time, flight.arrival_airport_code)}</span>
       </div>
     </div>
   )

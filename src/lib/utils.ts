@@ -1,12 +1,50 @@
 import { clsx, type ClassValue } from 'clsx'
 import { parseISO, differenceInDays } from 'date-fns'
 
+export const AIRPORT_TZ: Record<string, string> = {
+  JFK: 'America/New_York', LGA: 'America/New_York', EWR: 'America/New_York',
+  BOS: 'America/New_York', DCA: 'America/New_York', IAD: 'America/New_York',
+  PHL: 'America/New_York', CLT: 'America/New_York', ATL: 'America/New_York',
+  MIA: 'America/New_York', TPA: 'America/New_York', MCO: 'America/New_York',
+  DTW: 'America/New_York', ORD: 'America/Chicago', MDW: 'America/Chicago',
+  DFW: 'America/Chicago', IAH: 'America/Chicago', MSP: 'America/Chicago',
+  DEN: 'America/Denver', PHX: 'America/Phoenix', SLC: 'America/Denver',
+  SEA: 'America/Los_Angeles', PDX: 'America/Los_Angeles',
+  SFO: 'America/Los_Angeles', LAX: 'America/Los_Angeles', SAN: 'America/Los_Angeles',
+  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu',
+  LHR: 'Europe/London', LGW: 'Europe/London', CDG: 'Europe/Paris',
+  AMS: 'Europe/Amsterdam', FRA: 'Europe/Berlin', MUC: 'Europe/Berlin',
+  FCO: 'Europe/Rome', MXP: 'Europe/Rome', BCN: 'Europe/Madrid',
+  MAD: 'Europe/Madrid', ZRH: 'Europe/Zurich', VIE: 'Europe/Vienna',
+  CPH: 'Europe/Copenhagen', ARN: 'Europe/Stockholm', OSL: 'Europe/Oslo',
+  HEL: 'Europe/Helsinki', DUB: 'Europe/Dublin', BRU: 'Europe/Brussels',
+  LIS: 'Europe/Lisbon', ATH: 'Europe/Athens', IST: 'Europe/Istanbul',
+  HND: 'Asia/Tokyo', NRT: 'Asia/Tokyo', ICN: 'Asia/Seoul',
+  PVG: 'Asia/Shanghai', PEK: 'Asia/Shanghai', HKG: 'Asia/Hong_Kong',
+  SIN: 'Asia/Singapore', BKK: 'Asia/Bangkok', DEL: 'Asia/Kolkata',
+  BOM: 'Asia/Kolkata', DXB: 'Asia/Dubai',
+  SYD: 'Australia/Sydney', MEL: 'Australia/Sydney', AKL: 'Pacific/Auckland',
+}
+
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs)
 }
 
-export function formatDate(dateStr: string, fmt = 'EEE, MMM d') {
+export function formatDate(dateStr: string, fmt = 'EEE, MMM d', airportCode?: string | null) {
   try {
+    if (airportCode && AIRPORT_TZ[airportCode]) {
+      const d = new Date(dateStr)
+      if (!isNaN(d.getTime())) {
+        const tz = AIRPORT_TZ[airportCode]
+        if (fmt === 'EEE, MMM d') {
+          return d.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' })
+        }
+        if (fmt === 'EEE d MMM') {
+          return d.toLocaleDateString('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short' })
+        }
+        return d.toLocaleDateString('en-US', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
+      }
+    }
     const d = new Date(dateStr.slice(0, 10) + 'T00:00:00Z')
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -20,9 +58,15 @@ export function formatDate(dateStr: string, fmt = 'EEE, MMM d') {
   } catch { return dateStr }
 }
 
-export function formatTime(dateStr: string) {
+export function formatTime(dateStr: string, airportCode?: string | null) {
   try {
     if (/^(\d{2}:\d{2})$/.test(dateStr)) return dateStr
+    if (airportCode && AIRPORT_TZ[airportCode]) {
+      const d = new Date(dateStr)
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString('en-GB', { timeZone: AIRPORT_TZ[airportCode], hour: '2-digit', minute: '2-digit', hour12: false })
+      }
+    }
     const m = dateStr.match(/T(\d{2}:\d{2})/)
     return m ? m[1] : dateStr
   } catch { return dateStr }
