@@ -1,6 +1,7 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Polyline, Marker, Popup, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
+import { Maximize2, Minimize2 } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
 import { getAirportCoords } from '../../lib/airports'
 import { haversineKm } from '../../lib/geo'
@@ -169,6 +170,14 @@ function MapBounds({ bounds }: { bounds: ReturnType<typeof getBounds> }) {
   return null
 }
 
+function MapResize({ fullscreen }: { fullscreen: boolean }) {
+  const map = useMap()
+  useEffect(() => {
+    setTimeout(() => map.invalidateSize(), 100)
+  }, [map, fullscreen])
+  return null
+}
+
 function markerIcon(color: string) {
   return L.divIcon({
     className: '',
@@ -183,41 +192,53 @@ interface FlightMapViewProps {
 }
 
 export function FlightMapView({ flights }: FlightMapViewProps) {
+  const [fullscreen, setFullscreen] = useState(false)
   const routes = useMemo(() => buildRoutes(flights), [flights])
   const totalKm = useMemo(() => routes.reduce((sum, r) => sum + r.totalDistance, 0), [routes])
   const bounds = useMemo(() => getBounds(routes), [routes])
+
+  useEffect(() => {
+    if (fullscreen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [fullscreen])
 
   const center: [number, number] = bounds
     ? [bounds.getCenter().lat, bounds.getCenter().lng]
     : [20, 0]
 
   return (
-    <div className="space-y-4">
-      <div className="bg-ink-800 border border-ink-700 rounded-xl px-4 py-3 flex items-center gap-4 text-sm overflow-x-auto">
-        <span className="text-slate-600 whitespace-nowrap">
-          {flights.length} flight{flights.length !== 1 ? 's' : ''}
-        </span>
-        <span className="text-slate-400 shrink-0">·</span>
-        <span className="text-slate-600 whitespace-nowrap">
-          <strong className="text-slate-900 font-mono">{totalKm.toLocaleString()}</strong> km total
-        </span>
-        <span className="text-slate-400 shrink-0">·</span>
-        <div className="flex items-center gap-2 flex-wrap">
-          {routes.map((r) => (
-            <span key={r.flight.id} className="flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
-              <span className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold font-mono text-white shrink-0" style={{ backgroundColor: r.color }}>{r.order}</span>
-              {r.flight.departure_airport_code}–{r.flight.arrival_airport_code}
-              <span className="font-mono">({r.totalDistance}km)</span>
-            </span>
-          ))}
+    <div className={`${fullscreen ? 'fixed inset-0 z-50 bg-ink-950 flex flex-col' : 'space-y-4'}`}>
+      {!fullscreen && (
+        <div className="bg-ink-800 border border-ink-700 rounded-xl px-4 py-3 flex items-center gap-4 text-sm overflow-x-auto">
+          <span className="text-slate-600 whitespace-nowrap">
+            {flights.length} flight{flights.length !== 1 ? 's' : ''}
+          </span>
+          <span className="text-slate-400 shrink-0">·</span>
+          <span className="text-slate-600 whitespace-nowrap">
+            <strong className="text-slate-900 font-mono">{totalKm.toLocaleString()}</strong> km total
+          </span>
+          <span className="text-slate-400 shrink-0">·</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {routes.map((r) => (
+              <span key={r.flight.id} className="flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
+                <span className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold font-mono text-white shrink-0" style={{ backgroundColor: r.color }}>{r.order}</span>
+                {r.flight.departure_airport_code}–{r.flight.arrival_airport_code}
+                <span className="font-mono">({r.totalDistance}km)</span>
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="rounded-2xl overflow-hidden border border-ink-700">
+      <div className={`relative ${fullscreen ? 'flex-1 min-h-0' : 'rounded-2xl'} overflow-hidden ${fullscreen ? '' : 'border border-ink-700'}`}>
         <MapContainer
           center={center}
           zoom={3}
-          style={{ height: '520px', width: '100%' }}
+          style={{ height: fullscreen ? '100%' : '520px', width: '100%' }}
           scrollWheelZoom={true}
         >
           <TileLayer
@@ -225,6 +246,7 @@ export function FlightMapView({ flights }: FlightMapViewProps) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MapBounds bounds={bounds} />
+          <MapResize fullscreen={fullscreen} />
 
           {routes.map((route) => {
             const visited = new Set<string>()
@@ -289,6 +311,14 @@ export function FlightMapView({ flights }: FlightMapViewProps) {
             )
           })}
         </MapContainer>
+
+        <button
+          onClick={() => setFullscreen(!fullscreen)}
+          className="absolute top-3 right-3 z-[1000] bg-ink-800/80 hover:bg-ink-700 p-2 rounded-lg border border-ink-600 text-slate-400 hover:text-slate-200 transition-all backdrop-blur-sm"
+          title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        </button>
       </div>
     </div>
   )
