@@ -51,7 +51,7 @@ function getAirportOffset(airportCode: string, date: Date): number {
   if (!tzName) return 0
   const parts = new Intl.DateTimeFormat('en', {
     timeZone: tzName, year: 'numeric', month: 'numeric', day: 'numeric',
-    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
   }).formatToParts(date)
   const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10)
   const localMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
