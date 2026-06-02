@@ -41,8 +41,9 @@ function getAirportOffset(airportCode, date) {
 
 function localToUtc(localIso, airportCode) {
   const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
+  const isZeroOffset = /[+-]00:00$/.test(localIso)
   const d = new Date(hasTz ? localIso : localIso + 'Z')
-  if (hasTz || !airportCode || isNaN(d.getTime())) return d
+  if ((hasTz && !isZeroOffset) || !airportCode || isNaN(d.getTime())) return d
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000)
 }
@@ -159,6 +160,22 @@ test('String with offset is returned as-is', () => {
 test('No airport code -> appended Z as-is', () => {
   const result = localToUtc('2026-06-06T09:10:00', null)
   assertEqual(result.toISOString(), '2026-06-06T09:10:00.000Z', 'No airport')
+})
+
+// FlightView returns -00:00 offset for local times (unknown offset)
+test('FlightView -00:00 MAD 09:10 -> 07:10 UTC', () => {
+  const result = localToUtc('2026-06-06T09:10:00.000-00:00', 'MAD')
+  assertEqual(result.toISOString(), '2026-06-06T07:10:00.000Z', 'FlightView -00:00 MAD')
+})
+
+test('FlightView -00:00 LHR 12:30 -> 11:30 UTC', () => {
+  const result = localToUtc('2026-06-06T12:30:00-00:00', 'LHR')
+  assertEqual(result.toISOString(), '2026-06-06T11:30:00.000Z', 'FlightView -00:00 LHR')
+})
+
+test('FlightView +00:00 treated same as -00:00', () => {
+  const result = localToUtc('2026-06-06T09:10:00.000+00:00', 'MAD')
+  assertEqual(result.toISOString(), '2026-06-06T07:10:00.000Z', 'FlightView +00:00 MAD')
 })
 
 test('PHX local 10:00 (MST, UTC-7) -> 17:00 UTC', () => {

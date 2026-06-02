@@ -89,8 +89,9 @@ function getAirportOffset(airportCode: string, date: Date): number {
 
 function localToUtc(localIso: string, airportCode: string | null): Date {
   const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
+  const isZeroOffset = /[+-]00:00$/.test(localIso)
   const d = new Date(hasTz ? localIso : localIso + 'Z')
-  if (hasTz || !airportCode || isNaN(d.getTime())) return d
+  if ((hasTz && !isZeroOffset) || !airportCode || isNaN(d.getTime())) return d
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000)
 }
