@@ -1,10 +1,90 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const AIRPORT_TZ: Record<string, string> = {
+  JFK: 'America/New_York', LGA: 'America/New_York', EWR: 'America/New_York',
+  BOS: 'America/New_York', DCA: 'America/New_York', IAD: 'America/New_York',
+  PHL: 'America/New_York', CLT: 'America/New_York', ATL: 'America/New_York',
+  MIA: 'America/New_York', TPA: 'America/New_York', MCO: 'America/New_York',
+  DTW: 'America/New_York', ORD: 'America/Chicago', MDW: 'America/Chicago',
+  DFW: 'America/Chicago', IAH: 'America/Chicago', MSP: 'America/Chicago',
+  DEN: 'America/Denver', PHX: 'America/Phoenix', SLC: 'America/Denver',
+  SEA: 'America/Los_Angeles', PDX: 'America/Los_Angeles',
+  SFO: 'America/Los_Angeles', LAX: 'America/Los_Angeles', SAN: 'America/Los_Angeles',
+  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu',
+  LHR: 'Europe/London', LGW: 'Europe/London', CDG: 'Europe/Paris',
+  AMS: 'Europe/Amsterdam', FRA: 'Europe/Berlin', MUC: 'Europe/Berlin',
+  FCO: 'Europe/Rome', MXP: 'Europe/Rome', BCN: 'Europe/Madrid',
+  MAD: 'Europe/Madrid', ZRH: 'Europe/Zurich', VIE: 'Europe/Vienna',
+  CPH: 'Europe/Copenhagen', ARN: 'Europe/Stockholm', OSL: 'Europe/Oslo',
+  HEL: 'Europe/Helsinki', DUB: 'Europe/Dublin', BRU: 'Europe/Brussels',
+  LIS: 'Europe/Lisbon', ATH: 'Europe/Athens', IST: 'Europe/Istanbul',
+  HND: 'Asia/Tokyo', NRT: 'Asia/Tokyo', ICN: 'Asia/Seoul',
+  PVG: 'Asia/Shanghai', PEK: 'Asia/Shanghai', HKG: 'Asia/Hong_Kong',
+  SIN: 'Asia/Singapore', BKK: 'Asia/Bangkok', DEL: 'Asia/Kolkata',
+  BOM: 'Asia/Kolkata', DXB: 'Asia/Dubai',
+  SYD: 'Australia/Sydney', MEL: 'Australia/Sydney', AKL: 'Pacific/Auckland',
+}
+
+function getAirportOffset(airportCode: string, date: Date): number {
+  const tzName = AIRPORT_TZ[airportCode]
+  if (!tzName) return 0
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: tzName, year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
+  }).formatToParts(date)
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10)
+  const localMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+  const utcMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds())
+  return (utcMs - localMs) / 60000
+}
+
+function localToUtc(localIso: string | null, airportCode: string | null): string | null {
+  if (!localIso) return null
+  const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
+  const isZeroOffset = /[+-]00:00$/.test(localIso)
+  const d = new Date(hasTz ? localIso : localIso + 'Z')
+  if ((hasTz && !isZeroOffset) || !airportCode || isNaN(d.getTime())) return d.toISOString()
+  const offset = getAirportOffset(airportCode, d)
+  return new Date(d.getTime() + offset * 60000).toISOString()
+}
+
+async function lookupFlightView(airline: string, number: string, departureDate: string) {
+  const url = `https://app-api.flightview.com/api/v2/flight/${airline}/${number}?departureDate=${departureDate}`
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+      'Accept-Language': 'en-GB',
+      'Referer': `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${departureDate}`,
+      'Origin': 'https://www.flightview.com',
+    }
+  })
+  if (!response.ok) return null
+  const data = await response.json()
+  if (data.emptyResults || !data.flight) return null
+  return data.flight
+}
+
+const statusMap: Record<string, string> = {
+  Scheduled: 'scheduled',
+  Active: 'active',
+  'In Air': 'active',
+  EnRoute: 'active',
+  Departed: 'active',
+  Approaching: 'active',
+  Landed: 'landed',
+  Arrived: 'landed',
+  Delayed: 'delayed',
+  Cancelled: 'cancelled',
+  Canceled: 'cancelled',
+  Diverted: 'diverted',
+  Unknown: 'unknown',
 }
 
 serve(async (req) => {
@@ -20,45 +100,32 @@ serve(async (req) => {
     const airline = match[1].toUpperCase()
     const number = match[2]
 
-    const url = `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${depDate}`
+    const fvFlight = await lookupFlightView(airline, number, depDate)
+    if (!fvFlight) throw new Error('Flight not found')
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
+    const rawStatus = fvFlight.flightStatus ?? 'Scheduled'
+    const status = statusMap[rawStatus] ?? 'unknown'
+
+    const dep = fvFlight.departure ?? {}
+    const arr = fvFlight.arrival ?? {}
+
+    const departureTime = localToUtc(dep.departureDateTime ?? null, dep.airportCode ?? null)
+    const arrivalTime = localToUtc(arr.arrivalDateTime ?? null, arr.airportCode ?? null)
+
+    let durationMinutes: number | null = null
+    const durText = dep.duration ?? arr.duration ?? null
+    if (durText) {
+      const m = durText.match(/^\s*(\d+)\s*hr?s?\s*(?:(\d+)\s*min?s?)?\s*$/i)
+      if (m) {
+        const h = parseInt(m[1], 10)
+        const min = m[2] ? parseInt(m[2], 10) : 0
+        durationMinutes = h * 60 + min
       }
-    })
-
-    if (!response.ok) {
-      throw new Error(`FlightView fetch failed: ${response.status}`)
     }
-
-    const html = await response.text()
-    const $ = cheerio.load(html)
-
-    const flightStatus =
-      $('.status', '#ffDetails').text().trim() ||
-      $('[class*="status"]').first().text().trim() ||
-      'Scheduled'
-
-    const statusMap: Record<string, string> = {
-      Scheduled: 'scheduled',
-      Active: 'active',
-      Departed: 'active',
-      'En Route': 'active',
-      EnRoute: 'active',
-      Approaching: 'active',
-      Landed: 'landed',
-      Arrived: 'landed',
-      Delayed: 'delayed',
-      Cancelled: 'cancelled',
-      Canceled: 'cancelled',
-      Diverted: 'diverted',
-      Unknown: 'unknown',
+    if (durationMinutes == null && departureTime && arrivalTime) {
+      durationMinutes = Math.round((new Date(arrivalTime).getTime() - new Date(departureTime).getTime()) / 60000)
     }
-
-    const status = statusMap[flightStatus] ?? 'unknown'
+    if (durationMinutes != null && durationMinutes <= 0) durationMinutes = null
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -66,10 +133,32 @@ serve(async (req) => {
     )
 
     if (flight_id) {
-      await supabase.from('flights').update({ status }).eq('id', flight_id)
+      const updates: Record<string, unknown> = { status }
+      if (departureTime) updates.departure_time = departureTime
+      if (arrivalTime) updates.arrival_time = arrivalTime
+      if (durationMinutes != null) updates.duration_minutes = durationMinutes
+      if (dep.terminal) updates.departure_terminal = dep.terminal
+      if (dep.gate) updates.departure_gate = dep.gate
+      if (arr.terminal) updates.arrival_terminal = arr.terminal
+      if (arr.gate) updates.arrival_gate = arr.gate
+      if (arr.baggage) updates.arrival_baggage = arr.baggage
+
+      await supabase.from('flights').update(updates).eq('id', flight_id)
     }
 
-    return new Response(JSON.stringify({ status, raw: flightStatus, source: 'flightview' }), {
+    return new Response(JSON.stringify({
+      status,
+      raw_status: rawStatus,
+      departure_time: departureTime,
+      arrival_time: arrivalTime,
+      duration_minutes: durationMinutes,
+      departure_terminal: dep.terminal ?? null,
+      departure_gate: dep.gate ?? null,
+      arrival_terminal: arr.terminal ?? null,
+      arrival_gate: arr.gate ?? null,
+      arrival_baggage: arr.baggage ?? null,
+      source: 'flightview',
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

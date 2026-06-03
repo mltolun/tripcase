@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
-import * as cheerio from 'cheerio'
 
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -14,12 +13,77 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   realtime: { transport: WebSocket },
 })
 
+const AIRPORT_TZ = {
+  JFK: 'America/New_York', LGA: 'America/New_York', EWR: 'America/New_York',
+  BOS: 'America/New_York', DCA: 'America/New_York', IAD: 'America/New_York',
+  PHL: 'America/New_York', CLT: 'America/New_York', ATL: 'America/New_York',
+  MIA: 'America/New_York', TPA: 'America/New_York', MCO: 'America/New_York',
+  DTW: 'America/New_York', ORD: 'America/Chicago', MDW: 'America/Chicago',
+  DFW: 'America/Chicago', IAH: 'America/Chicago', MSP: 'America/Chicago',
+  DEN: 'America/Denver', PHX: 'America/Phoenix', SLC: 'America/Denver',
+  SEA: 'America/Los_Angeles', PDX: 'America/Los_Angeles',
+  SFO: 'America/Los_Angeles', LAX: 'America/Los_Angeles', SAN: 'America/Los_Angeles',
+  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu',
+  LHR: 'Europe/London', LGW: 'Europe/London', CDG: 'Europe/Paris',
+  AMS: 'Europe/Amsterdam', FRA: 'Europe/Berlin', MUC: 'Europe/Berlin',
+  FCO: 'Europe/Rome', MXP: 'Europe/Rome', BCN: 'Europe/Madrid',
+  MAD: 'Europe/Madrid', ZRH: 'Europe/Zurich', VIE: 'Europe/Vienna',
+  CPH: 'Europe/Copenhagen', ARN: 'Europe/Stockholm', OSL: 'Europe/Oslo',
+  HEL: 'Europe/Helsinki', DUB: 'Europe/Dublin', BRU: 'Europe/Brussels',
+  LIS: 'Europe/Lisbon', ATH: 'Europe/Athens', IST: 'Europe/Istanbul',
+  HND: 'Asia/Tokyo', NRT: 'Asia/Tokyo', ICN: 'Asia/Seoul',
+  PVG: 'Asia/Shanghai', PEK: 'Asia/Shanghai', HKG: 'Asia/Hong_Kong',
+  SIN: 'Asia/Singapore', BKK: 'Asia/Bangkok', DEL: 'Asia/Kolkata',
+  BOM: 'Asia/Kolkata', DXB: 'Asia/Dubai',
+  SYD: 'Australia/Sydney', MEL: 'Australia/Sydney', AKL: 'Pacific/Auckland',
+}
+
+function getAirportOffset(airportCode, date) {
+  const tzName = AIRPORT_TZ[airportCode]
+  if (!tzName) return 0
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: tzName, year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
+  }).formatToParts(date)
+  const get = (t) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10)
+  const localMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+  const utcMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds())
+  return (utcMs - localMs) / 60000
+}
+
+function localToUtc(localIso, airportCode) {
+  if (!localIso) return null
+  const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
+  const isZeroOffset = /[+-]00:00$/.test(localIso)
+  const d = new Date(hasTz ? localIso : localIso + 'Z')
+  if ((hasTz && !isZeroOffset) || !airportCode || isNaN(d.getTime())) return d.toISOString()
+  const offset = getAirportOffset(airportCode, d)
+  return new Date(d.getTime() + offset * 60000).toISOString()
+}
+
+async function lookupFlightView(airline, number, departureDate) {
+  const url = `https://app-api.flightview.com/api/v2/flight/${airline}/${number}?departureDate=${departureDate}`
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+      'Accept-Language': 'en-GB',
+      'Referer': `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${departureDate}`,
+      'Origin': 'https://www.flightview.com',
+    }
+  })
+  if (!response.ok) return null
+  const data = await response.json()
+  if (data.emptyResults || !data.flight) return null
+  return data.flight
+}
+
 const statusMap = {
   Scheduled: 'scheduled',
   Active: 'active',
-  Departed: 'active',
-  'En Route': 'active',
+  'In Air': 'active',
   EnRoute: 'active',
+  Departed: 'active',
   Approaching: 'active',
   Landed: 'landed',
   Arrived: 'landed',
@@ -65,29 +129,48 @@ async function main() {
       const airline = match[1].toUpperCase()
       const number = match[2]
       const date = flight.departure_time.slice(0, 10)
-      const url = `https://www.flightview.com/flight-tracker/${airline}/${number}?date=${date}`
 
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      })
+      const fvFlight = await lookupFlightView(airline, number, date)
+      if (!fvFlight) {
+        console.log(`  ${flight.flight_number}: no data from FlightView`)
+        continue
+      }
 
-      if (!res.ok) continue
-
-      const html = await res.text()
-      const $ = cheerio.load(html)
-
-      const rawStatus =
-        $('.status', '#ffDetails').text().trim() ||
-        $('[class*="status"]').first().text().trim() ||
-        'Scheduled'
-
+      const rawStatus = fvFlight.flightStatus ?? 'Scheduled'
       const status = statusMap[rawStatus] ?? 'unknown'
 
-      await supabase.from('flights').update({ status }).eq('id', flight.id)
+      const dep = fvFlight.departure ?? {}
+      const arr = fvFlight.arrival ?? {}
+
+      const departureTime = localToUtc(dep.departureDateTime ?? null, dep.airportCode ?? null)
+      const arrivalTime = localToUtc(arr.arrivalDateTime ?? null, arr.airportCode ?? null)
+
+      let durationMinutes = null
+      const durText = dep.duration ?? arr.duration ?? null
+      if (durText) {
+        const m = durText.match(/^\s*(\d+)\s*hr?s?\s*(?:(\d+)\s*min?s?)?\s*$/i)
+        if (m) {
+          const h = parseInt(m[1], 10)
+          const min = m[2] ? parseInt(m[2], 10) : 0
+          durationMinutes = h * 60 + min
+        }
+      }
+      if (durationMinutes == null && departureTime && arrivalTime) {
+        durationMinutes = Math.round((new Date(arrivalTime).getTime() - new Date(departureTime).getTime()) / 60000)
+      }
+      if (durationMinutes != null && durationMinutes <= 0) durationMinutes = null
+
+      const updates = { status }
+      if (departureTime) updates.departure_time = departureTime
+      if (arrivalTime) updates.arrival_time = arrivalTime
+      if (durationMinutes != null) updates.duration_minutes = durationMinutes
+      if (dep.terminal) updates.departure_terminal = dep.terminal
+      if (dep.gate) updates.departure_gate = dep.gate
+      if (arr.terminal) updates.arrival_terminal = arr.terminal
+      if (arr.gate) updates.arrival_gate = arr.gate
+      if (arr.baggage) updates.arrival_baggage = arr.baggage
+
+      await supabase.from('flights').update(updates).eq('id', flight.id)
       checked++
       console.log(`  ${flight.flight_number}: ${rawStatus} → ${status}`)
     } catch (err) {

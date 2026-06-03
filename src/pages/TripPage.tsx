@@ -63,7 +63,20 @@ export function TripPage() {
       body: { flight_id: flightId, flight_number: flight.flight_number, departure_date: flight.departure_time.slice(0, 10) }
     })
     if (error) toast.error('Status refresh failed')
-    else { await updateFlight(flightId, { status: data.status }); toast.success(`Status: ${data.status}`) }
+    else {
+      const updates: Partial<FlightInsert> = {}
+      if (data.status) updates.status = data.status
+      if (data.departure_time) updates.departure_time = data.departure_time
+      if (data.arrival_time) updates.arrival_time = data.arrival_time
+      if (data.duration_minutes != null) updates.duration_minutes = data.duration_minutes
+      if (data.departure_terminal) updates.departure_terminal = data.departure_terminal
+      if (data.departure_gate) updates.departure_gate = data.departure_gate
+      if (data.arrival_terminal) updates.arrival_terminal = data.arrival_terminal
+      if (data.arrival_gate) updates.arrival_gate = data.arrival_gate
+      if (data.arrival_baggage) updates.arrival_baggage = data.arrival_baggage
+      await updateFlight(flightId, updates)
+      toast.success(`Status: ${data.status}`)
+    }
   }
 
   function copyShareLink() {
