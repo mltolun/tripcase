@@ -9,9 +9,10 @@ const corsHeaders = {
 const statusMap: Record<string, string> = {
   Scheduled: 'scheduled',
   Active: 'active',
-  EnRoute: 'active',
-  Departed: 'active',
-  Approaching: 'active',
+  'In Air': 'in air',
+  EnRoute: 'en route',
+  Departed: 'departed',
+  Approaching: 'approaching',
   Landed: 'landed',
   Arrived: 'landed',
   Delayed: 'delayed',

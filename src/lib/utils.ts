@@ -103,6 +103,10 @@ export { airlineLogoUrl } from './airlines'
 export const FLIGHT_STATUS_COLORS: Record<string, string> = {
   scheduled: 'text-sky-400 bg-sky-400/10',
   active: 'text-emerald-400 bg-emerald-400/10',
+  'in air': 'text-emerald-400 bg-emerald-400/10',
+  'en route': 'text-emerald-400 bg-emerald-400/10',
+  departed: 'text-emerald-400 bg-emerald-400/10',
+  approaching: 'text-emerald-400 bg-emerald-400/10',
   landed: 'text-slate-400 bg-slate-400/10',
   cancelled: 'text-rose-400 bg-rose-400/10',
   delayed: 'text-amber-400 bg-amber-400/10',

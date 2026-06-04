@@ -94,9 +94,9 @@ serve(async (req) => {
     console.log('Raw status from API:', f.status)
 
     const statusMap: Record<string, string> = {
-      Unknown: 'unknown', Expected: 'scheduled', EnRoute: 'active',
+      Unknown: 'unknown', Expected: 'scheduled', EnRoute: 'en route',
       CheckIn: 'scheduled', Boarding: 'scheduled', GateClosed: 'scheduled',
-      Departed: 'active', Delayed: 'delayed', Approaching: 'active',
+      Departed: 'departed', Delayed: 'delayed', Approaching: 'approaching',
       Landed: 'landed', Arrived: 'landed', Cancelled: 'cancelled',
       Diverted: 'diverted', CanceledUncertain: 'cancelled',
     }
