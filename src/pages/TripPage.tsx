@@ -20,6 +20,7 @@ import { Button } from '../components/ui/Button'
 import type { Flight, Hotel as HotelType, CarRental, FlightInsert, HotelInsert, CarRentalInsert } from '../lib/database.types'
 import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
+import { AIRPORT_TZ } from '../lib/utils'
 
 type Tab = 'flights' | 'hotels' | 'cars'
 
@@ -48,6 +49,14 @@ export function TripPage() {
     else { toast.success('Trip deleted'); navigate('/') }
   }
 
+  function getLocalDepartureDate(utcStr: string, airportCode: string): string {
+    const tz = AIRPORT_TZ[airportCode]
+    if (!tz) return utcStr.slice(0, 10)
+    const d = new Date(utcStr)
+    if (isNaN(d.getTime())) return utcStr.slice(0, 10)
+    return d.toLocaleDateString('en-CA', { timeZone: tz })
+  }
+
   if (!id) return null
   if (!trip || !user) return (
     <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -60,7 +69,11 @@ export function TripPage() {
     const flight = flights.find(f => f.id === flightId)
     if (!flight?.flight_number) { toast.error('No flight number set'); return }
     const { data, error } = await supabase.functions.invoke('check-flight-status', {
-      body: { flight_id: flightId, flight_number: flight.flight_number, departure_date: flight.departure_time.slice(0, 10) }
+      body: {
+        flight_id: flightId,
+        flight_number: flight.flight_number,
+        departure_date: getLocalDepartureDate(flight.departure_time, flight.departure_airport_code),
+      }
     })
     if (error) toast.error('Status refresh failed')
     else {

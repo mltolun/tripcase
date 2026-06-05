@@ -5,7 +5,7 @@ import { Button } from '../ui/Button'
 import type { FlightInsert, Layover, Flight } from '../../lib/database.types'
 import { Plus, Trash2, Clock } from 'lucide-react'
 import { lookupFlight, parseFlightNumber, type FlightLookupResult } from '../../lib/flightApi'
-import { airlineLogoUrl, formatTime, formatDate, formatDurationMinutes } from '../../lib/utils'
+import { airlineLogoUrl, formatTime, formatDate, formatDurationMinutes, AIRPORT_TZ } from '../../lib/utils'
 
 interface FlightFormProps {
   initial?: Partial<Flight>
@@ -23,7 +23,14 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
     (initial?.layovers as Layover[] | null) ?? []
   )
   const [flightCode, setFlightCode] = useState(initial?.flight_number ?? '')
-  const [departureDate, setDepartureDate] = useState(initial?.departure_time?.slice(0, 10) ?? '')
+  const [departureDate, setDepartureDate] = useState(() => {
+    if (!initial?.departure_time) return ''
+    const tz = AIRPORT_TZ[initial.departure_airport_code ?? '']
+    if (!tz) return initial.departure_time.slice(0, 10)
+    const d = new Date(initial.departure_time)
+    if (isNaN(d.getTime())) return initial.departure_time.slice(0, 10)
+    return d.toLocaleDateString('en-CA', { timeZone: tz })
+  })
   const [lookupResult, setLookupResult] = useState<FlightLookupResult | null>(null)
   const [logoError, setLogoError] = useState(false)
 

@@ -11,7 +11,7 @@ export const AIRPORT_TZ: Record<string, string> = {
   DEN: 'America/Denver', PHX: 'America/Phoenix', SLC: 'America/Denver',
   SEA: 'America/Los_Angeles', PDX: 'America/Los_Angeles',
   SFO: 'America/Los_Angeles', LAX: 'America/Los_Angeles', SAN: 'America/Los_Angeles',
-  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu',
+  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu', SJD: 'America/Mazatlan',
   LHR: 'Europe/London', LGW: 'Europe/London', CDG: 'Europe/Paris',
   AMS: 'Europe/Amsterdam', FRA: 'Europe/Berlin', MUC: 'Europe/Berlin',
   FCO: 'Europe/Rome', MXP: 'Europe/Rome', BCN: 'Europe/Madrid',
