@@ -74,6 +74,9 @@ export function TripPage() {
       if (data.arrival_terminal) updates.arrival_terminal = data.arrival_terminal
       if (data.arrival_gate) updates.arrival_gate = data.arrival_gate
       if (data.arrival_baggage) updates.arrival_baggage = data.arrival_baggage
+      if (data.operating_airline_name) updates.operating_airline_name = data.operating_airline_name
+      if (data.operating_airline_iata) updates.operating_airline_iata = data.operating_airline_iata
+      if (data.operating_flight_number) updates.operating_flight_number = data.operating_flight_number
       await updateFlight(flightId, updates)
       toast.success(`Status: ${data.status}`)
     }

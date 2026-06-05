@@ -83,12 +83,17 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
       airline_name: lookupResult?.airline_name ?? initial?.airline_name ?? parsed?.airline ?? '',
       airline_iata: lookupResult?.airline_iata ?? initial?.airline_iata ?? parsed?.airline ?? null,
       flight_number: parsed ? `${parsed.airline}${parsed.number}` : flightCode,
+      operating_airline_name: lookupResult?.operating_airline_name ?? initial?.operating_airline_name ?? null,
+      operating_airline_iata: lookupResult?.operating_airline_iata ?? initial?.operating_airline_iata ?? null,
+      operating_flight_number: lookupResult?.operating_flight_number ?? initial?.operating_flight_number ?? null,
       departure_airport_code: lookupResult?.departure_airport_code ?? initial?.departure_airport_code ?? '',
       departure_airport_name: lookupResult?.departure_airport_name ?? initial?.departure_airport_name ?? null,
       arrival_airport_code: lookupResult?.arrival_airport_code ?? initial?.arrival_airport_code ?? '',
       arrival_airport_name: lookupResult?.arrival_airport_name ?? initial?.arrival_airport_name ?? null,
       departure_time: combinedDeparture,
       arrival_time: combinedArrival,
+      scheduled_departure_time: lookupResult?.scheduled_departure_time ?? initial?.scheduled_departure_time ?? null,
+      scheduled_arrival_time: lookupResult?.scheduled_arrival_time ?? initial?.scheduled_arrival_time ?? null,
       duration_minutes: lookupResult?.duration_minutes ?? initial?.duration_minutes ?? null,
       departure_terminal: lookupResult?.departure_terminal ?? initial?.departure_terminal ?? null,
       departure_gate: lookupResult?.departure_gate ?? initial?.departure_gate ?? null,
@@ -149,10 +154,15 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               </div>
             )}
             <div>
-              <p className="font-display font-semibold text-sm text-slate-900">{r.airline_name}</p>
+              <p className="font-display font-semibold text-sm text-slate-900">{r.airline_name ?? r.airline_iata ?? ''}</p>
               <p className="text-xs text-slate-500 font-mono">
                 {r.flight_number}{r.aircraft_type ? ` · ${r.aircraft_type}` : ''}
               </p>
+              {(lookupResult?.operating_airline_name && lookupResult?.operating_airline_iata !== lookupResult?.airline_iata) && (
+                <p className="text-[10px] text-slate-600 font-mono mt-0.5">
+                  Operated by {lookupResult.operating_airline_name} ({lookupResult.operating_airline_iata}) {lookupResult.operating_flight_number}
+                </p>
+              )}
             </div>
           </div>
 

@@ -58,6 +58,16 @@ export function formatDate(dateStr: string, fmt = 'EEE, MMM d', airportCode?: st
   } catch { return dateStr }
 }
 
+export function compareTimes(actual: string, scheduled: string | null): 'early' | 'delayed' | 'on-time' | null {
+  if (!scheduled) return null
+  const a = new Date(actual).getTime()
+  const s = new Date(scheduled).getTime()
+  if (isNaN(a) || isNaN(s)) return null
+  const diff = a - s
+  if (Math.abs(diff) < 60000) return 'on-time'
+  return diff < 0 ? 'early' : 'delayed'
+}
+
 export function formatTime(dateStr: string, airportCode?: string | null) {
   try {
     if (/^(\d{2}:\d{2})$/.test(dateStr)) return dateStr

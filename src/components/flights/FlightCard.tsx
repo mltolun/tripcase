@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
-import { formatDate, formatTime, formatDurationMinutes, FLIGHT_STATUS_COLORS, airlineLogoUrl } from '../../lib/utils'
+import { formatDate, formatTime, formatDurationMinutes, FLIGHT_STATUS_COLORS, airlineLogoUrl, compareTimes } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
@@ -64,6 +64,12 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <p className="text-sm text-slate-600 font-mono">
                 {flight.flight_number ?? '–'}{flight.aircraft_type ? ` · ${flight.aircraft_type}` : ''}
               </p>
+              {flight.operating_airline_iata && flight.operating_airline_iata !== flight.airline_iata && (
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  Operated by {flight.operating_airline_name ?? flight.operating_airline_iata}
+                  {flight.operating_flight_number ? ` (${flight.operating_flight_number})` : ''}
+                </p>
+              )}
               <p className="text-xs text-slate-500 font-mono mt-0.5 sm:hidden">
                 {formatDate(flight.departure_time, 'EEE d MMM', flight.departure_airport_code)}
               </p>
@@ -87,8 +93,19 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <PlaneTakeoff size={12} className="text-amber-400 shrink-0" />
               <span className="text-sm text-slate-600 truncate font-mono">{flight.departure_airport_name ?? flight.departure_airport_code}</span>
             </div>
-            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.departure_time, flight.departure_airport_code)}</p>
+            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">
+              {formatTime(flight.scheduled_departure_time ?? flight.departure_time, flight.departure_airport_code)}
+            </p>
             <p className="font-mono font-bold text-sm text-amber-400 mt-0.5">{flight.departure_airport_code}</p>
+            {(() => {
+              const cmp = compareTimes(flight.departure_time, flight.scheduled_departure_time)
+              if (!cmp || cmp === 'on-time') return null
+              return (
+                <p className={`text-xs font-mono mt-0.5 ${cmp === 'delayed' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  Actual: {formatTime(flight.departure_time, flight.departure_airport_code)}
+                </p>
+              )
+            })()}
             {(flight.departure_terminal || flight.departure_gate) && (
               <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                 {flight.departure_terminal && `T${flight.departure_terminal}`}
@@ -124,8 +141,19 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <span className="text-sm text-slate-600 truncate font-mono">{flight.arrival_airport_name ?? flight.arrival_airport_code}</span>
               <PlaneLanding size={12} className="text-sky-400 shrink-0" />
             </div>
-            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">{formatTime(flight.arrival_time, flight.arrival_airport_code)}</p>
+            <p className="font-display font-bold text-xl sm:text-2xl text-slate-900 leading-none">
+              {formatTime(flight.scheduled_arrival_time ?? flight.arrival_time, flight.arrival_airport_code)}
+            </p>
             <p className="font-mono font-bold text-sm text-sky-400 mt-0.5">{flight.arrival_airport_code}</p>
+            {(() => {
+              const cmp = compareTimes(flight.arrival_time, flight.scheduled_arrival_time)
+              if (!cmp || cmp === 'on-time') return null
+              return (
+                <p className={`text-xs font-mono mt-0.5 ${cmp === 'delayed' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  Actual: {formatTime(flight.arrival_time, flight.arrival_airport_code)}
+                </p>
+              )
+            })()}
             {(flight.arrival_terminal || flight.arrival_gate) && (
               <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                 {flight.arrival_terminal && `T${flight.arrival_terminal}`}

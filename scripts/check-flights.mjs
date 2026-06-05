@@ -145,6 +145,26 @@ async function main() {
       const departureTime = localToUtc(dep.departureDateTime ?? null, dep.airportCode ?? null)
       const arrivalTime = localToUtc(arr.arrivalDateTime ?? null, arr.airportCode ?? null)
 
+      // Extract operating airline from titles.main
+      const title = fvFlight.titles?.main ?? ''
+      let operatingName = null
+      let operatingIata = null
+      let operatingFlightNumber = null
+
+      const operatedMatch = title.match(/^Operated by\s+(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/i)
+      if (operatedMatch) {
+        operatingName = operatedMatch[1].trim()
+        operatingIata = operatedMatch[2]
+        operatingFlightNumber = `${operatedMatch[2]}${operatedMatch[3]}`
+      } else {
+        const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
+        if (titleMatch) {
+          operatingName = titleMatch[1].trim()
+          operatingIata = titleMatch[2]
+          operatingFlightNumber = `${titleMatch[2]}${titleMatch[3]}`
+        }
+      }
+
       let durationMinutes = null
       const durText = dep.duration ?? arr.duration ?? null
       if (durText) {
@@ -169,6 +189,9 @@ async function main() {
       if (arr.terminal) updates.arrival_terminal = arr.terminal
       if (arr.gate) updates.arrival_gate = arr.gate
       if (arr.baggage) updates.arrival_baggage = arr.baggage
+      if (operatingName) updates.operating_airline_name = operatingName
+      if (operatingIata) updates.operating_airline_iata = operatingIata
+      if (operatingFlightNumber) updates.operating_flight_number = operatingFlightNumber
 
       await supabase.from('flights').update(updates).eq('id', flight.id)
       checked++

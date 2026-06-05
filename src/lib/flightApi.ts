@@ -4,14 +4,19 @@ export interface FlightLookupResult {
   airline_iata: string | null
   airline_name: string | null
   flight_number: string | null
+  operating_airline_name: string | null
+  operating_airline_iata: string | null
+  operating_flight_number: string | null
   departure_airport_code: string | null
   departure_airport_name: string | null
   departure_time: string | null
+  scheduled_departure_time: string | null
   departure_terminal: string | null
   departure_gate: string | null
   arrival_airport_code: string | null
   arrival_airport_name: string | null
   arrival_time: string | null
+  scheduled_arrival_time: string | null
   arrival_date: string | null
   arrival_terminal: string | null
   arrival_gate: string | null

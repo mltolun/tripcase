@@ -333,6 +333,12 @@ function FlightPopupContent({ flight }: { flight: Flight }) {
         )}
         {flight.airline_name} {flight.flight_number}
       </div>
+      {flight.operating_airline_iata && flight.operating_airline_iata !== flight.airline_iata && (
+        <div className="text-[10px] text-slate-500 font-mono mb-1">
+          Operated by {flight.operating_airline_name ?? flight.operating_airline_iata}
+          {flight.operating_flight_number ? ` (${flight.operating_flight_number})` : ''}
+        </div>
+      )}
       <div className="flex justify-between gap-4">
         <span className="text-slate-500">{flight.departure_airport_code}</span>
         <span className="font-mono">{formatDate(flight.departure_time, 'EEE d MMM', flight.departure_airport_code)} {formatTime(flight.departure_time, flight.departure_airport_code)}</span>

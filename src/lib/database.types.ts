@@ -20,12 +20,17 @@ export type FlightInsert = {
   airline_name: string
   airline_iata?: string | null
   flight_number?: string | null
+  operating_airline_name?: string | null
+  operating_airline_iata?: string | null
+  operating_flight_number?: string | null
   departure_airport_code: string
   departure_airport_name?: string | null
   arrival_airport_code: string
   arrival_airport_name?: string | null
   departure_time: string
   arrival_time: string
+  scheduled_departure_time?: string | null
+  scheduled_arrival_time?: string | null
   duration_minutes?: number | null
   departure_terminal?: string | null
   departure_gate?: string | null
@@ -95,12 +100,17 @@ export interface Flight {
   airline_name: string
   airline_iata: string | null
   flight_number: string | null
+  operating_airline_name: string | null
+  operating_airline_iata: string | null
+  operating_flight_number: string | null
   departure_airport_code: string
   departure_airport_name: string | null
   arrival_airport_code: string
   arrival_airport_name: string | null
   departure_time: string
   arrival_time: string
+  scheduled_departure_time: string | null
+  scheduled_arrival_time: string | null
   duration_minutes: number | null
   departure_terminal: string | null
   departure_gate: string | null

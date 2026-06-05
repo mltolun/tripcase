@@ -112,6 +112,26 @@ serve(async (req) => {
     const departureTime = localToUtc(dep.departureDateTime ?? null, dep.airportCode ?? null)
     const arrivalTime = localToUtc(arr.arrivalDateTime ?? null, arr.airportCode ?? null)
 
+    // Extract operating airline from titles.main
+    const title = fvFlight.titles?.main ?? ''
+    let operatingName: string | null = null
+    let operatingIata: string | null = null
+    let operatingFlightNumber: string | null = null
+
+    const operatedMatch = title.match(/^Operated by\s+(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/i)
+    if (operatedMatch) {
+      operatingName = operatedMatch[1].trim()
+      operatingIata = operatedMatch[2]
+      operatingFlightNumber = `${operatedMatch[2]}${operatedMatch[3]}`
+    } else {
+      const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
+      if (titleMatch) {
+        operatingName = titleMatch[1].trim()
+        operatingIata = titleMatch[2]
+        operatingFlightNumber = `${titleMatch[2]}${titleMatch[3]}`
+      }
+    }
+
     let durationMinutes: number | null = null
     const durText = dep.duration ?? arr.duration ?? null
     if (durText) {
@@ -142,7 +162,11 @@ serve(async (req) => {
       if (arr.terminal) updates.arrival_terminal = arr.terminal
       if (arr.gate) updates.arrival_gate = arr.gate
       if (arr.baggage) updates.arrival_baggage = arr.baggage
+      if (operatingName) updates.operating_airline_name = operatingName
+      if (operatingIata) updates.operating_airline_iata = operatingIata
+      if (operatingFlightNumber) updates.operating_flight_number = operatingFlightNumber
 
+      // Don't overwrite scheduled times — only update actual times
       await supabase.from('flights').update(updates).eq('id', flight_id)
     }
 
@@ -152,6 +176,9 @@ serve(async (req) => {
       departure_time: departureTime,
       arrival_time: arrivalTime,
       duration_minutes: durationMinutes,
+      operating_airline_name: operatingName,
+      operating_airline_iata: operatingIata,
+      operating_flight_number: operatingFlightNumber,
       departure_terminal: dep.terminal ?? null,
       departure_gate: dep.gate ?? null,
       arrival_terminal: arr.terminal ?? null,

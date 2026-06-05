@@ -172,10 +172,28 @@ serve(async (req) => {
       const ac = fvFlight.aircraft ?? {}
       const title = fvFlight.titles?.main ?? ''
 
-      const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
-      const airlineName = titleMatch?.[1]?.trim() ?? null
-      const airlineIata = titleMatch?.[2] ?? airline
-      const flightNum = titleMatch ? `${titleMatch[2]}${titleMatch[3]}` : flight_number
+      // Parse operating airline from titles.main
+      // "Operated by British Airways (BA) 273" → operating is different from marketing
+      // "Iberia (IB) 3616" → operating is same as marketing
+      let marketingName: string | null = null
+      let operatingName: string | null = null
+      let operatingIata: string | null = null
+      let operatingFlightNumber: string | null = null
+
+      const operatedMatch = title.match(/^Operated by\s+(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/i)
+      if (operatedMatch) {
+        operatingName = operatedMatch[1].trim()
+        operatingIata = operatedMatch[2]
+        operatingFlightNumber = `${operatedMatch[2]}${operatedMatch[3]}`
+      } else {
+        const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
+        if (titleMatch) {
+          marketingName = titleMatch[1].trim()
+          operatingName = marketingName
+          operatingIata = titleMatch[2]
+          operatingFlightNumber = `${titleMatch[2]}${titleMatch[3]}`
+        }
+      }
 
       const depDateLabel = extractDateFromLabel(dep.scheduledTime, depDate)
       const arrDateLabel = extractDateFromLabel(arr.scheduledTime, depDate)
@@ -192,19 +210,27 @@ serve(async (req) => {
       }
       if (durationMinutes != null && durationMinutes <= 0) durationMinutes = null
 
+      const departureTimeUtc = localToUtc(depTimeIso, dep.airportCode ?? null).toISOString()
+      const arrivalTimeUtc = localToUtc(arrTimeIso, arr.airportCode ?? null).toISOString()
+
       const result = {
-        airline_iata: airlineIata,
-        airline_name: airlineName,
-        flight_number: flightNum,
+        airline_iata: airline,
+        airline_name: marketingName,
+        flight_number: flight_number,
+        operating_airline_name: operatingName,
+        operating_airline_iata: operatingIata,
+        operating_flight_number: operatingFlightNumber,
         departure_airport_code: dep.airportCode ?? null,
         departure_airport_name: dep.airport ?? null,
-        departure_time: localToUtc(depTimeIso, dep.airportCode ?? null).toISOString(),
+        departure_time: departureTimeUtc,
+        scheduled_departure_time: departureTimeUtc,
         departure_date: depDateLabel,
         departure_terminal: dep.terminal ?? null,
         departure_gate: dep.gate ?? null,
         arrival_airport_code: arr.airportCode ?? null,
         arrival_airport_name: arr.airport ?? null,
-        arrival_time: localToUtc(arrTimeIso, arr.airportCode ?? null).toISOString(),
+        arrival_time: arrivalTimeUtc,
+        scheduled_arrival_time: arrivalTimeUtc,
         arrival_date: arrDateLabel,
         arrival_terminal: arr.terminal ?? null,
         arrival_gate: arr.gate ?? null,
