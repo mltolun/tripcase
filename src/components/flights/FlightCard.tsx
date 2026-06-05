@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, AlertTriangle } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
 import { formatDate, formatTime, formatDurationMinutes, FLIGHT_STATUS_COLORS, airlineLogoUrl, compareTimes } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
@@ -12,23 +12,14 @@ interface FlightCardProps {
   flight: Flight
   onEdit?: (flight: Flight) => void
   onDelete?: (id: string) => void
-  onRefreshStatus?: (id: string) => Promise<void>
   readonly?: boolean
 }
 
-export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly }: FlightCardProps) {
+export function FlightCard({ flight, onEdit, onDelete, readonly }: FlightCardProps) {
   const [logoError, setLogoError] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const layovers = (flight.layovers as Layover[] | null) ?? []
   const statusColor = FLIGHT_STATUS_COLORS[flight.status] ?? FLIGHT_STATUS_COLORS.unknown
-
-  async function handleRefresh() {
-    if (!onRefreshStatus) return
-    setRefreshing(true)
-    await onRefreshStatus(flight.id)
-    setRefreshing(false)
-  }
 
   return (
     <motion.div
@@ -198,11 +189,6 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
             </div>
             {!readonly && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {onRefreshStatus && (
-                  <Button variant="ghost" size="sm" onClick={handleRefresh} loading={refreshing} className="h-7 px-2">
-                    <RefreshCw size={12} />
-                  </Button>
-                )}
                 {onEdit && (
                   <Button variant="ghost" size="sm" onClick={() => onEdit(flight)} className="h-7 px-2">
                     <Pencil size={12} />

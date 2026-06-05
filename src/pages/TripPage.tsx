@@ -17,10 +17,8 @@ import { CarForm } from '../components/cars/CarForm'
 import { EditTripModal } from '../components/trips/EditTripModal'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
-import type { Flight, Hotel as HotelType, CarRental, FlightInsert, HotelInsert, CarRentalInsert } from '../lib/database.types'
+import type { Flight, Hotel as HotelType, CarRental, HotelInsert, CarRentalInsert } from '../lib/database.types'
 import toast from 'react-hot-toast'
-import { supabase } from '../lib/supabase'
-import { AIRPORT_TZ } from '../lib/utils'
 
 type Tab = 'flights' | 'hotels' | 'cars'
 
@@ -49,14 +47,6 @@ export function TripPage() {
     else { toast.success('Trip deleted'); navigate('/') }
   }
 
-  function getLocalDepartureDate(utcStr: string, airportCode: string): string {
-    const tz = AIRPORT_TZ[airportCode]
-    if (!tz) return utcStr.slice(0, 10)
-    const d = new Date(utcStr)
-    if (isNaN(d.getTime())) return utcStr.slice(0, 10)
-    return d.toLocaleDateString('en-CA', { timeZone: tz })
-  }
-
   if (!id) return null
   if (!trip || !user) return (
     <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -64,36 +54,6 @@ export function TripPage() {
       <Button variant="ghost" onClick={() => navigate('/')} className="mt-4"><ArrowLeft size={14} /> Back</Button>
     </div>
   )
-
-  async function handleRefreshFlight(flightId: string) {
-    const flight = flights.find(f => f.id === flightId)
-    if (!flight?.flight_number) { toast.error('No flight number set'); return }
-    const { data, error } = await supabase.functions.invoke('check-flight-status', {
-      body: {
-        flight_id: flightId,
-        flight_number: flight.flight_number,
-        departure_date: getLocalDepartureDate(flight.departure_time, flight.departure_airport_code),
-      }
-    })
-    if (error) toast.error('Status refresh failed')
-    else {
-      const updates: Partial<FlightInsert> = {}
-      if (data.status) updates.status = data.status
-      if (data.departure_time) updates.departure_time = data.departure_time
-      if (data.arrival_time) updates.arrival_time = data.arrival_time
-      if (data.duration_minutes != null) updates.duration_minutes = data.duration_minutes
-      if (data.departure_terminal) updates.departure_terminal = data.departure_terminal
-      if (data.departure_gate) updates.departure_gate = data.departure_gate
-      if (data.arrival_terminal) updates.arrival_terminal = data.arrival_terminal
-      if (data.arrival_gate) updates.arrival_gate = data.arrival_gate
-      if (data.arrival_baggage) updates.arrival_baggage = data.arrival_baggage
-      if (data.operating_airline_name) updates.operating_airline_name = data.operating_airline_name
-      if (data.operating_airline_iata) updates.operating_airline_iata = data.operating_airline_iata
-      if (data.operating_flight_number) updates.operating_flight_number = data.operating_flight_number
-      await updateFlight(flightId, updates)
-      toast.success(`Status: ${data.status}`)
-    }
-  }
 
   function copyShareLink() {
     if (!trip) return
@@ -214,7 +174,6 @@ export function TripPage() {
                       key={f.id} flight={f}
                       onEdit={f => setFlightModal({ open: true, editing: f })}
                       onDelete={async id => { await deleteFlight(id); toast.success('Flight removed') }}
-                      onRefreshStatus={handleRefreshFlight}
                     />
                   ))}
                 </AnimatePresence>

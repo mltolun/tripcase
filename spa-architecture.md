@@ -63,7 +63,6 @@ Hooks hold local state with `useState`, fetch on mount via `useEffect`, and opti
 Supabase Edge Functions (Deno/TypeScript) handle server-side work the browser can't do alone:
 
 - **`lookup-flight`** — scrapes external APIs (FlightView, FlightStats) to auto-populate flight details by flight number.
-- **`check-flight-status`** — fetches real-time flight status and updates the database directly (using a service-role key).
 
 These are invoked from the client via `supabase.functions.invoke('function-name', ...)`.
 

@@ -23,7 +23,7 @@ const AIRPORT_TZ = {
   DEN: 'America/Denver', PHX: 'America/Phoenix', SLC: 'America/Denver',
   SEA: 'America/Los_Angeles', PDX: 'America/Los_Angeles',
   SFO: 'America/Los_Angeles', LAX: 'America/Los_Angeles', SAN: 'America/Los_Angeles',
-  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu',
+  LAS: 'America/Los_Angeles', HNL: 'Pacific/Honolulu', SJD: 'America/Mazatlan',
   LHR: 'Europe/London', LGW: 'Europe/London', CDG: 'Europe/Paris',
   AMS: 'Europe/Amsterdam', FRA: 'Europe/Berlin', MUC: 'Europe/Berlin',
   FCO: 'Europe/Rome', MXP: 'Europe/Rome', BCN: 'Europe/Madrid',
@@ -59,6 +59,18 @@ function localToUtc(localIso, airportCode) {
   if ((hasTz && !isZeroOffset) || !airportCode || isNaN(d.getTime())) return d.toISOString()
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000).toISOString()
+}
+
+function parseScheduledTime(scheduledStr, airportCode, fallbackDate) {
+  if (!scheduledStr || !airportCode) return null
+  const m = scheduledStr.match(/^(\d{2}:\d{2}),\s*(\w{3})\s*(\d{1,2})$/)
+  if (!m) return null
+  const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 }
+  const month = months[m[2].toLowerCase().slice(0, 3)]
+  if (month === undefined) return null
+  const year = new Date(fallbackDate + 'T00:00:00').getFullYear()
+  const localIso = `${year}-${String(month + 1).padStart(2, '0')}-${String(parseInt(m[3], 10)).padStart(2, '0')}T${m[1]}:00`
+  return localToUtc(localIso, airportCode)
 }
 
 async function lookupFlightView(airline, number, departureDate) {
@@ -144,6 +156,8 @@ async function main() {
 
       const departureTime = localToUtc(dep.departureDateTime ?? null, dep.airportCode ?? null)
       const arrivalTime = localToUtc(arr.arrivalDateTime ?? null, arr.airportCode ?? null)
+      const scheduledDep = parseScheduledTime(dep.scheduledTime, dep.airportCode ?? null, date)
+      const scheduledArr = parseScheduledTime(arr.scheduledTime, arr.airportCode ?? null, date)
 
       // Parse operating airline from titles.sub ("Operated by British Airways (BA) 273")
       // Fall back to titles.main ("Iberia (IB) 3616") if sub has no operated-by info
@@ -186,6 +200,8 @@ async function main() {
       if (departureTime) updates.departure_time = departureTime
       if (arrivalTime) updates.arrival_time = arrivalTime
       if (durationMinutes != null) updates.duration_minutes = durationMinutes
+      if (scheduledDep) updates.scheduled_departure_time = scheduledDep
+      if (scheduledArr) updates.scheduled_arrival_time = scheduledArr
       if (dep.terminal) updates.departure_terminal = dep.terminal
       if (dep.gate) updates.departure_gate = dep.gate
       if (arr.terminal) updates.arrival_terminal = arr.terminal
