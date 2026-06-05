@@ -17,7 +17,7 @@ import { CarForm } from '../components/cars/CarForm'
 import { EditTripModal } from '../components/trips/EditTripModal'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
-import type { Flight, Hotel as HotelType, CarRental, HotelInsert, CarRentalInsert } from '../lib/database.types'
+import type { Flight, Hotel as HotelType, CarRental, FlightInsert, HotelInsert, CarRentalInsert } from '../lib/database.types'
 import toast from 'react-hot-toast'
 
 type Tab = 'flights' | 'hotels' | 'cars'
