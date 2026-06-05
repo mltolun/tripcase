@@ -187,28 +187,28 @@ serve(async (req) => {
       const ac = fvFlight.aircraft ?? {}
       const title = fvFlight.titles?.main ?? ''
 
-      // Parse operating airline from titles.main
-      // "Operated by British Airways (BA) 273" → operating is different from marketing
-      // "Iberia (IB) 3616" → operating is same as marketing
+      // Parse marketing airline from titles.main ("Iberia (IB) 3616")
+      // Parse operating airline from titles.sub ("Operated by British Airways (BA) 273")
       let marketingName: string | null = null
       let operatingName: string | null = null
       let operatingIata: string | null = null
       let operatingFlightNumber: string | null = null
 
-      const operatedMatch = title.match(/^Operated by\s+(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/i)
+      const mainMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
+      if (mainMatch) {
+        marketingName = mainMatch[1].trim()
+      }
+
+      const subTitle = fvFlight.titles?.sub ?? ''
+      const operatedMatch = subTitle.match(/^Operated by\s+(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/i)
       if (operatedMatch) {
         operatingName = operatedMatch[1].trim()
         operatingIata = operatedMatch[2]
         operatingFlightNumber = `${operatedMatch[2]}${operatedMatch[3]}`
-        marketingName = fvFlight.carrier?.name ?? fvFlight.airline?.name ?? null
-      } else {
-        const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
-        if (titleMatch) {
-          marketingName = titleMatch[1].trim()
-          operatingName = marketingName
-          operatingIata = titleMatch[2]
-          operatingFlightNumber = `${titleMatch[2]}${titleMatch[3]}`
-        }
+      } else if (mainMatch) {
+        operatingName = marketingName
+        operatingIata = mainMatch[2]
+        operatingFlightNumber = `${mainMatch[2]}${mainMatch[3]}`
       }
 
       const depDateLabel = extractDateFromLabel(dep.scheduledTime, depDate)

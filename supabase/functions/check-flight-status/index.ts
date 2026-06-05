@@ -129,23 +129,25 @@ serve(async (req) => {
     const scheduledDep = parseScheduledTime(dep.scheduledTime, dep.airportCode ?? null, depDate)
     const scheduledArr = parseScheduledTime(arr.scheduledTime, arr.airportCode ?? null, depDate)
 
-    // Extract operating airline from titles.main
-    const title = fvFlight.titles?.main ?? ''
+    // Parse operating airline from titles.sub ("Operated by British Airways (BA) 273")
+    // Fall back to titles.main ("Iberia (IB) 3616") if sub has no operated-by info
+    const mainTitle = fvFlight.titles?.main ?? ''
+    const subTitle = fvFlight.titles?.sub ?? ''
     let operatingName: string | null = null
     let operatingIata: string | null = null
     let operatingFlightNumber: string | null = null
 
-    const operatedMatch = title.match(/^Operated by\s+(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/i)
+    const operatedMatch = subTitle.match(/^Operated by\s+(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/i)
     if (operatedMatch) {
       operatingName = operatedMatch[1].trim()
       operatingIata = operatedMatch[2]
       operatingFlightNumber = `${operatedMatch[2]}${operatedMatch[3]}`
     } else {
-      const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
-      if (titleMatch) {
-        operatingName = titleMatch[1].trim()
-        operatingIata = titleMatch[2]
-        operatingFlightNumber = `${titleMatch[2]}${titleMatch[3]}`
+      const mainMatch = mainTitle.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
+      if (mainMatch) {
+        operatingName = mainMatch[1].trim()
+        operatingIata = mainMatch[2]
+        operatingFlightNumber = `${mainMatch[2]}${mainMatch[3]}`
       }
     }
 
