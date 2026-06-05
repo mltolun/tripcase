@@ -333,9 +333,9 @@ function FlightPopupContent({ flight }: { flight: Flight }) {
         )}
         {flight.airline_name} {flight.flight_number}
       </div>
-      {flight.operating_airline_iata && flight.operating_airline_iata !== flight.airline_iata && (
+      {flight.operating_airline_name && flight.operating_airline_name !== flight.airline_name && (
         <div className="text-[10px] text-slate-500 font-mono mb-1">
-          Operated by {flight.operating_airline_name ?? flight.operating_airline_iata}
+          Operated by {flight.operating_airline_name}
           {flight.operating_flight_number ? ` (${flight.operating_flight_number})` : ''}
         </div>
       )}

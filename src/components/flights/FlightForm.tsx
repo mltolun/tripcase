@@ -158,7 +158,7 @@ export function FlightForm({ initial, onSubmit, onCancel, tripId, userId }: Flig
               <p className="text-xs text-slate-500 font-mono">
                 {r.flight_number}{r.aircraft_type ? ` · ${r.aircraft_type}` : ''}
               </p>
-              {(r.operating_airline_name && r.operating_airline_iata !== r.airline_iata) && (
+              {(r.operating_airline_name && r.operating_airline_name !== r.airline_name) && (
                 <p className="text-[10px] text-slate-600 font-mono mt-0.5">
                   Operated by {r.operating_airline_name} ({r.operating_airline_iata}) {r.operating_flight_number}
                 </p>

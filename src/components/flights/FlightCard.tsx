@@ -64,9 +64,9 @@ export function FlightCard({ flight, onEdit, onDelete, onRefreshStatus, readonly
               <p className="text-sm text-slate-600 font-mono">
                 {flight.flight_number ?? '–'}{flight.aircraft_type ? ` · ${flight.aircraft_type}` : ''}
               </p>
-              {flight.operating_airline_iata && flight.operating_airline_iata !== flight.airline_iata && (
+              {flight.operating_airline_name && flight.operating_airline_name !== flight.airline_name && (
                 <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  Operated by {flight.operating_airline_name ?? flight.operating_airline_iata}
+                  Operated by {flight.operating_airline_name}
                   {flight.operating_flight_number ? ` (${flight.operating_flight_number})` : ''}
                 </p>
               )}
