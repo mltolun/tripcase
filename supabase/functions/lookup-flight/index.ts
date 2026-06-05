@@ -76,6 +76,21 @@ function extractDate(isoStr: string | null): string | null {
   return isoStr.slice(0, 10)
 }
 
+function parseScheduledTime(scheduledStr: string | null, airportCode: string | null, fallbackDate: string): Date | null {
+  if (!scheduledStr || !airportCode) return null
+  const m = scheduledStr.match(/^(\d{2}:\d{2}),\s*(\w{3})\s*(\d{1,2})$/)
+  if (!m) return null
+  const months: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6,
+    aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  }
+  const month = months[m[2].toLowerCase().slice(0, 3)]
+  if (month === undefined) return null
+  const year = new Date(fallbackDate + 'T00:00:00').getFullYear()
+  const localIso = `${year}-${String(month + 1).padStart(2, '0')}-${String(parseInt(m[3], 10)).padStart(2, '0')}T${m[1]}:00`
+  return localToUtc(localIso, airportCode)
+}
+
 function extractDateFromLabel(label: string | null, fallbackDate: string): string {
   if (!label) return fallbackDate
   const m = label.match(/(\w{3}\s+\d{1,2})/)
@@ -213,6 +228,8 @@ serve(async (req) => {
 
       const departureTimeUtc = localToUtc(depTimeIso, dep.airportCode ?? null).toISOString()
       const arrivalTimeUtc = localToUtc(arrTimeIso, arr.airportCode ?? null).toISOString()
+      const scheduledDepUtc = parseScheduledTime(dep.scheduledTime, dep.airportCode ?? null, depDate)
+      const scheduledArrUtc = parseScheduledTime(arr.scheduledTime, arr.airportCode ?? null, depDate)
 
       const result = {
         airline_iata: airline,
@@ -224,14 +241,14 @@ serve(async (req) => {
         departure_airport_code: dep.airportCode ?? null,
         departure_airport_name: dep.airport ?? null,
         departure_time: departureTimeUtc,
-        scheduled_departure_time: departureTimeUtc,
+        scheduled_departure_time: scheduledDepUtc?.toISOString() ?? departureTimeUtc,
         departure_date: depDateLabel,
         departure_terminal: dep.terminal ?? null,
         departure_gate: dep.gate ?? null,
         arrival_airport_code: arr.airportCode ?? null,
         arrival_airport_name: arr.airport ?? null,
         arrival_time: arrivalTimeUtc,
-        scheduled_arrival_time: arrivalTimeUtc,
+        scheduled_arrival_time: scheduledArrUtc?.toISOString() ?? arrivalTimeUtc,
         arrival_date: arrDateLabel,
         arrival_terminal: arr.terminal ?? null,
         arrival_gate: arr.gate ?? null,

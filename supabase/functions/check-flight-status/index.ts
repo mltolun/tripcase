@@ -71,6 +71,21 @@ async function lookupFlightView(airline: string, number: string, departureDate: 
   return data.flight
 }
 
+function parseScheduledTime(scheduledStr: string | null, airportCode: string | null, fallbackDate: string): string | null {
+  if (!scheduledStr || !airportCode) return null
+  const m = scheduledStr.match(/^(\d{2}:\d{2}),\s*(\w{3})\s*(\d{1,2})$/)
+  if (!m) return null
+  const months: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6,
+    aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  }
+  const month = months[m[2].toLowerCase().slice(0, 3)]
+  if (month === undefined) return null
+  const year = new Date(fallbackDate + 'T00:00:00').getFullYear()
+  const localIso = `${year}-${String(month + 1).padStart(2, '0')}-${String(parseInt(m[3], 10)).padStart(2, '0')}T${m[1]}:00`
+  return localToUtc(localIso, airportCode)
+}
+
 const statusMap: Record<string, string> = {
   Scheduled: 'scheduled',
   Active: 'active',
@@ -111,6 +126,8 @@ serve(async (req) => {
 
     const departureTime = localToUtc(dep.departureDateTime ?? null, dep.airportCode ?? null)
     const arrivalTime = localToUtc(arr.arrivalDateTime ?? null, arr.airportCode ?? null)
+    const scheduledDep = parseScheduledTime(dep.scheduledTime, dep.airportCode ?? null, depDate)
+    const scheduledArr = parseScheduledTime(arr.scheduledTime, arr.airportCode ?? null, depDate)
 
     // Extract operating airline from titles.main
     const title = fvFlight.titles?.main ?? ''
@@ -166,7 +183,10 @@ serve(async (req) => {
       if (operatingIata) updates.operating_airline_iata = operatingIata
       if (operatingFlightNumber) updates.operating_flight_number = operatingFlightNumber
 
-      // Don't overwrite scheduled times — only update actual times
+      // Don't overwrite scheduled times — only update actual times.
+      // Backfill scheduled times if they are null (for flights saved before the columns existed).
+      if (scheduledDep) updates.scheduled_departure_time = scheduledDep
+      if (scheduledArr) updates.scheduled_arrival_time = scheduledArr
       await supabase.from('flights').update(updates).eq('id', flight_id)
     }
 
@@ -175,6 +195,8 @@ serve(async (req) => {
       raw_status: rawStatus,
       departure_time: departureTime,
       arrival_time: arrivalTime,
+      scheduled_departure_time: scheduledDep,
+      scheduled_arrival_time: scheduledArr,
       duration_minutes: durationMinutes,
       operating_airline_name: operatingName,
       operating_airline_iata: operatingIata,
