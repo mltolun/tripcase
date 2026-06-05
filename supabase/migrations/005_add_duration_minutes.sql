@@ -1,1 +1,1 @@
-ALTER TABLE flights ADD COLUMN duration_minutes INTEGER;
+ALTER TABLE flights ADD COLUMN IF NOT EXISTS duration_minutes INTEGER;

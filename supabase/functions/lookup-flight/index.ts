@@ -185,6 +185,7 @@ serve(async (req) => {
         operatingName = operatedMatch[1].trim()
         operatingIata = operatedMatch[2]
         operatingFlightNumber = `${operatedMatch[2]}${operatedMatch[3]}`
+        marketingName = fvFlight.carrier?.name ?? fvFlight.airline?.name ?? null
       } else {
         const titleMatch = title.match(/^(.+?)\s*\(([A-Z0-9]+)\)\s*(\d+)$/)
         if (titleMatch) {
@@ -256,6 +257,7 @@ serve(async (req) => {
     const header = flightData.resultHeader ?? {}
     const statusObj = flightData.status ?? {}
     const equip = flightData.additionalFlightInfo?.equipment ?? {}
+    const opCarrier = flightData.operatingCarrier ?? flightData.codeshare?.operatingCarrier ?? header.carrier ?? {}
 
     const depLocal = schedule.scheduledDeparture ?? null
     const depUtc = schedule.scheduledDepartureUTC ?? null
@@ -275,6 +277,9 @@ serve(async (req) => {
       airline_iata: header?.carrier?.fs ?? null,
       airline_name: header?.carrier?.name ?? null,
       flight_number: header?.flightNumber ? `${header.carrier?.fs ?? ''}${header.flightNumber}` : flight_number,
+      operating_airline_name: opCarrier?.name ?? null,
+      operating_airline_iata: opCarrier?.fs ?? null,
+      operating_flight_number: opCarrier?.fs ? `${opCarrier.fs}${header?.flightNumber ?? ''}` : null,
       departure_airport_code: depAirport.iata ?? null,
       departure_airport_name: depAirport.name ?? null,
       departure_time: depUtc,
