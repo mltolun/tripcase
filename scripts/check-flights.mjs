@@ -109,15 +109,20 @@ const statusMap = {
 async function main() {
   const now = new Date()
   const in4h = new Date(now.getTime() + 4 * 60 * 60 * 1000)
+  const since4h = new Date(now.getTime() - 4 * 60 * 60 * 1000)
 
   const { data: flights, error } = await supabase
     .from('flights')
     .select('id, flight_number, departure_time, arrival_time, status')
     .or(
+      // Upcoming flights departing within the next 4 hours
       `and(departure_time.gte.${now.toISOString()},departure_time.lte.${in4h.toISOString()}),` +
-      `and(departure_time.lt.${now.toISOString()},arrival_time.gte.${now.toISOString()})`
+      // In-air flights that have departed but not yet arrived
+      `and(departure_time.lt.${now.toISOString()},arrival_time.gte.${now.toISOString()}),` +
+      // Recently landed flights (within the last 4 hours) — captures post-landing data
+      `and(arrival_time.gte.${since4h.toISOString()},arrival_time.lt.${now.toISOString()})`
     )
-    .not('status', 'in', '("landed","cancelled")')
+    .not('status', 'in', '("cancelled")')
     .not('flight_number', 'is', null)
 
   if (error) {
