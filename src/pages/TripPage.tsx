@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Plus, Plane, Hotel, Car, Globe, Copy, Trash2, Pencil, List, Map as MapIcon } from 'lucide-react'
@@ -39,6 +39,19 @@ export function TripPage() {
   const [carModal, setCarModal] = useState<{ open: boolean; editing?: CarRental }>({ open: false })
   const [editOpen, setEditOpen] = useState(false)
   const [flightsView, setFlightsView] = useState<'list' | 'map'>('list')
+
+  // Sync trip dates from flights when flights change
+  useEffect(() => {
+    if (!id || flights.length === 0) return
+    const sorted = [...flights].sort((a, b) =>
+      new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime()
+    )
+    const startDate = sorted[0].departure_time.slice(0, 10)
+    const endDate = sorted[sorted.length - 1].arrival_time.slice(0, 10)
+    if (trip?.start_date !== startDate || trip?.end_date !== endDate) {
+      updateTrip(id, { start_date: startDate, end_date: endDate })
+    }
+  }, [flights, id])
 
   async function handleDeleteTrip() {
     if (!confirm('Delete this trip and all its bookings?')) return
