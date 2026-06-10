@@ -105,7 +105,17 @@ export function TripCard({ trip, onDelete, onTogglePublic, onEdit, index }: Trip
 
         {(trip.start_date || trip.end_date) && (
           <p className="text-sm text-slate-600 font-mono mt-2">
-            {trip.start_date ? formatDate(trip.start_date) : '?'} — {trip.end_date ? formatDate(trip.end_date) : '?'}
+            {(() => {
+              const s = trip.start_date, e = trip.end_date
+              const sy = s ? new Date(s).getFullYear() : null
+              const ey = e ? new Date(e).getFullYear() : null
+              if (s && e) {
+                if (sy === ey) return `${formatDate(s)} — ${formatDate(e)}, ${sy}`
+                return `${formatDate(s)}, ${sy} — ${formatDate(e)}, ${ey}`
+              }
+              if (s) return `${formatDate(s)}, ${sy}`
+              if (e) return `${formatDate(e)}, ${ey}`
+            })()}
           </p>
         )}
 

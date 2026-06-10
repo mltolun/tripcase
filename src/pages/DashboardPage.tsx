@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Plus, MapPin } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, MapPin, ChevronDown } from 'lucide-react'
 import { useTrips } from '../hooks/useTrips'
 import { TripCard } from '../components/trips/TripCard'
 import { EditTripModal } from '../components/trips/EditTripModal'
@@ -10,11 +10,40 @@ import { Button } from '../components/ui/Button'
 import type { Trip } from '../lib/database.types'
 import toast from 'react-hot-toast'
 
+function getTripYear(trip: Trip): number | null {
+  if (trip.start_date) return new Date(trip.start_date).getFullYear()
+  if (trip.end_date) return new Date(trip.end_date).getFullYear()
+  return null
+}
+
 export function DashboardPage() {
   const { trips, loading, createTrip, deleteTrip, updateTrip } = useTrips()
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [editTrip, setEditTrip] = useState<Trip | null>(null)
+
+  const grouped: Record<string, Trip[]> = {}
+  for (const trip of trips) {
+    const year = getTripYear(trip)
+    const key = year?.toString() ?? 'No date'
+    if (!grouped[key]) grouped[key] = []
+    grouped[key].push(trip)
+  }
+
+  const yearKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === 'No date') return 1
+    if (b === 'No date') return -1
+    return parseInt(b) - parseInt(a)
+  })
+
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(yearKeys))
+  function toggleYear(key: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      return next
+    })
+  }
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -60,7 +89,6 @@ export function DashboardPage() {
         </p>
       </motion.div>
 
-      {/* Trips grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
@@ -74,13 +102,13 @@ export function DashboardPage() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* New trip card - always first */}
+        <div className="space-y-6">
+          {/* New trip card */}
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={() => setCreateOpen(true)}
-            className="group min-h-[200px] bg-amber-400/5 border border-dashed border-amber-400/30 rounded-2xl flex flex-col items-center justify-center gap-3 hover:bg-amber-400/10 hover:border-amber-400/60 transition-all"
+            className="w-full group min-h-[140px] bg-amber-400/5 border border-dashed border-amber-400/30 rounded-2xl flex flex-col items-center justify-center gap-3 hover:bg-amber-400/10 hover:border-amber-400/60 transition-all"
           >
             <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:bg-amber-400/20 transition-colors">
               <Plus size={20} className="text-amber-400" />
@@ -88,16 +116,60 @@ export function DashboardPage() {
             <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">New trip</span>
           </motion.button>
 
-          {trips.map((trip, i) => (
-            <TripCard
-              key={trip.id}
-              trip={trip}
-              index={i}
-              onDelete={handleDelete}
-              onTogglePublic={handleTogglePublic}
-              onEdit={setEditTrip}
-            />
-          ))}
+          {/* Year sections */}
+          {yearKeys.map((yearKey) => {
+            const tripsInYear = grouped[yearKey]
+            const isOpen = expanded.has(yearKey)
+            const isUpcoming = tripsInYear.some(t => {
+              const d = t.start_date || t.end_date
+              return d && new Date(d) > new Date()
+            })
+            return (
+              <div key={yearKey}>
+                <button
+                  onClick={() => toggleYear(yearKey)}
+                  className="flex items-center gap-2 w-full text-left group mb-3"
+                >
+                  <motion.div
+                    animate={{ rotate: isOpen ? 0 : -90 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown size={16} className="text-slate-500" />
+                  </motion.div>
+                  <h2 className="font-display font-bold text-lg text-slate-900">
+                    {yearKey === 'No date' ? 'Unscheduled' : yearKey}
+                  </h2>
+                  <span className="text-sm text-slate-500 font-mono">({tripsInYear.length})</span>
+                  {isUpcoming && (
+                    <span className="text-[10px] text-emerald-400 bg-emerald-400/10 rounded-full px-1.5 py-0.5 font-mono font-semibold uppercase tracking-wider">Upcoming</span>
+                  )}
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-hidden"
+                    >
+                      {tripsInYear.map((trip, i) => (
+                        <TripCard
+                          key={trip.id}
+                          trip={trip}
+                          index={i}
+                          onDelete={handleDelete}
+                          onTogglePublic={handleTogglePublic}
+                          onEdit={setEditTrip}
+                        />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          })}
         </div>
       )}
 
