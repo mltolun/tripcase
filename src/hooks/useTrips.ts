@@ -17,7 +17,7 @@ export function useTrips() {
       .from('trips')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('start_date', { ascending: false, nullsFirst: false })
     if (error) setError(error.message)
     else setTrips((data ?? []) as Trip[])
     setLoading(false)
