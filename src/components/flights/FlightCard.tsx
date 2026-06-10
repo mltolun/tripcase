@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Pencil, Trash2, PlaneTakeoff, PlaneLanding, Clock, AlertTriangle } from 'lucide-react'
 import type { Flight, Layover } from '../../lib/database.types'
-import { formatDate, formatTime, formatDurationMinutes, FLIGHT_STATUS_COLORS, airlineLogoUrl, compareTimes } from '../../lib/utils'
+import { formatDateWithYear, formatTime, formatDurationMinutes, FLIGHT_STATUS_COLORS, airlineLogoUrl, compareTimes } from '../../lib/utils'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
@@ -62,7 +62,7 @@ export function FlightCard({ flight, onEdit, onDelete, readonly }: FlightCardPro
                 </p>
               )}
               <p className="text-xs text-slate-500 font-mono mt-0.5 sm:hidden">
-                {formatDate(flight.departure_time, 'EEE d MMM', flight.departure_airport_code)}
+                {formatDateWithYear(flight.departure_time, flight.departure_airport_code)}
               </p>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function FlightCard({ flight, onEdit, onDelete, readonly }: FlightCardPro
               {flight.status}
             </Badge>
             <span className="text-sm text-slate-600 font-mono hidden sm:block">
-              {formatDate(flight.departure_time, 'EEE d MMM', flight.departure_airport_code)}
+              {formatDateWithYear(flight.departure_time, flight.departure_airport_code)}
             </span>
           </div>
         </div>

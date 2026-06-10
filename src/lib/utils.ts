@@ -42,6 +42,9 @@ export function formatDate(dateStr: string, fmt = 'EEE, MMM d', airportCode?: st
         if (fmt === 'EEE d MMM') {
           return d.toLocaleDateString('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short' })
         }
+        if (fmt === 'EEE d MMM yyyy') {
+          return d.toLocaleDateString('en-GB', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+        }
         return d.toLocaleDateString('en-US', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
       }
     }
@@ -54,8 +57,19 @@ export function formatDate(dateStr: string, fmt = 'EEE, MMM d', airportCode?: st
     if (fmt === 'EEE d MMM') {
       return `${days[d.getUTCDay()]} ${d.getUTCDate()} ${months[d.getUTCMonth()]}`
     }
+    if (fmt === 'EEE d MMM yyyy') {
+      return `${days[d.getUTCDay()]} ${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+    }
     return dateStr.slice(0, 10)
   } catch { return dateStr }
+}
+
+export function formatDateWithYear(dateStr: string, airportCode?: string | null) {
+  try {
+    const year = new Date(dateStr).getFullYear()
+    const currentYear = new Date().getFullYear()
+    return formatDate(dateStr, year !== currentYear ? 'EEE d MMM yyyy' : 'EEE d MMM', airportCode)
+  } catch { return formatDate(dateStr, 'EEE d MMM', airportCode) }
 }
 
 export function compareTimes(actual: string, scheduled: string | null): 'early' | 'delayed' | 'on-time' | null {
