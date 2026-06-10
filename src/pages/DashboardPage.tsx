@@ -75,6 +75,19 @@ export function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* New trip card - always first */}
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => setCreateOpen(true)}
+            className="group min-h-[200px] bg-amber-400/5 border border-dashed border-amber-400/30 rounded-2xl flex flex-col items-center justify-center gap-3 hover:bg-amber-400/10 hover:border-amber-400/60 transition-all"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:bg-amber-400/20 transition-colors">
+              <Plus size={20} className="text-amber-400" />
+            </div>
+            <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">New trip</span>
+          </motion.button>
+
           {trips.map((trip, i) => (
             <TripCard
               key={trip.id}
@@ -85,20 +98,6 @@ export function DashboardPage() {
               onEdit={setEditTrip}
             />
           ))}
-
-          {/* New trip card */}
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: trips.length * 0.06 }}
-            onClick={() => setCreateOpen(true)}
-            className="group min-h-[200px] bg-ink-800/50 border border-dashed border-ink-600 rounded-2xl flex flex-col items-center justify-center gap-3 hover:border-amber-400/40 hover:bg-ink-800 transition-all"
-          >
-            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:bg-amber-400/20 transition-colors">
-              <Plus size={20} className="text-amber-400" />
-            </div>
-            <span className="text-sm text-slate-500 group-hover:text-slate-400 transition-colors">New trip</span>
-          </motion.button>
         </div>
       )}
 
