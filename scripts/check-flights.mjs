@@ -61,6 +61,15 @@ function localToUtc(localIso, airportCode) {
   return new Date(d.getTime() + offset * 60000).toISOString()
 }
 
+function utcToLocalDate(utcIso, airportCode) {
+  if (!utcIso || !airportCode) return utcIso?.slice(0, 10)
+  const d = new Date(utcIso)
+  if (isNaN(d.getTime())) return utcIso.slice(0, 10)
+  const offset = getAirportOffset(airportCode, d)
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().slice(0, 10)
+}
+
 function parseScheduledTime(scheduledStr, airportCode, fallbackDate) {
   if (!scheduledStr || !airportCode) return null
   const m = scheduledStr.match(/^(\d{2}:\d{2}),\s*(\w{3})\s*(\d{1,2})$/)
@@ -113,7 +122,7 @@ async function main() {
 
   const { data: flights, error } = await supabase
     .from('flights')
-    .select('id, flight_number, departure_time, arrival_time, status')
+    .select('id, flight_number, departure_time, arrival_time, departure_airport_code, status')
     .or(
       // Upcoming flights departing within the next 4 hours
       `and(departure_time.gte.${now.toISOString()},departure_time.lte.${in4h.toISOString()}),` +
@@ -145,7 +154,7 @@ async function main() {
 
       const airline = match[1].toUpperCase()
       const number = match[2]
-      const date = flight.departure_time.slice(0, 10)
+      const date = utcToLocalDate(flight.departure_time, flight.departure_airport_code)
 
       const fvFlight = await lookupFlightView(airline, number, date)
       if (!fvFlight) {
