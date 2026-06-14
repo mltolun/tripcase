@@ -17,7 +17,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci --ignore-platform
+      - run: npm ci
 
       - run: node scripts/check-flights.mjs
         env:
