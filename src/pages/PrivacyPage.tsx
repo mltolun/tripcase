@@ -29,10 +29,9 @@ const sections = [
       <>
         <p className="mb-3">TripCase uses the following third-party services. Each processes data strictly as described:</p>
         <ul className="space-y-2">
-          <li><strong>Supabase</strong> — Database storage, authentication, and serverless functions. All user data is stored in Supabase's PostgreSQL database. Supabase is SOC 2 compliant. <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline">Privacy policy</a></li>
+          <li><strong>Database</strong> — Your travel data is stored encrypted at rest and transmitted over HTTPS. Row-level security ensures you can only access your own data.</li>
           <li><strong>FlightView API &amp; FlightStats</strong> — When you look up a flight by number, your flight number and airline code are sent to these services to retrieve flight details and status.</li>
           <li><strong>Wikipedia API</strong> — When you create a trip with a city name, the city name is sent to Wikipedia to fetch a cover photo.</li>
-          <li><strong>Kiwi.com CDN</strong> — Airline logos are loaded from Kiwi.com's CDN using the airline IATA code.</li>
           <li><strong>Google Fonts</strong> — The Inter typeface is loaded from Google Fonts. This may transmit your IP address and user agent to Google. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline">Privacy policy</a></li>
         </ul>
       </>
