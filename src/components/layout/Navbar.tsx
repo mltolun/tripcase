@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { LogOut, User, Plane } from 'lucide-react'
+import { LogOut, User, Plane, Settings } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { Button } from '../ui/Button'
 import toast from 'react-hot-toast'
@@ -32,6 +32,9 @@ export function Navbar() {
               <User size={12} />
               <span className="font-mono">{user.email}</span>
             </div>
+            <Link to="/settings" className="text-slate-500 hover:text-slate-700 transition-colors p-1.5 rounded-lg hover:bg-ink-800">
+              <Settings size={15} />
+            </Link>
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
               <LogOut size={14} />
               <span className="hidden sm:inline">Sign out</span>
