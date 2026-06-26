@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, MapPin, ChevronDown } from 'lucide-react'
 import { useTrips } from '../hooks/useTrips'
@@ -37,7 +37,14 @@ export function DashboardPage() {
   })
 
   const currentYear = String(new Date().getFullYear())
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(yearKeys.filter(k => k === currentYear || k === 'No date')))
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  const initialized = useRef(false)
+  useEffect(() => {
+    if (yearKeys.length > 0 && !initialized.current) {
+      setExpanded(new Set(yearKeys.filter(k => k === currentYear || k === 'No date')))
+      initialized.current = true
+    }
+  }, [yearKeys, currentYear])
   function toggleYear(key: string) {
     setExpanded(prev => {
       const next = new Set(prev)
