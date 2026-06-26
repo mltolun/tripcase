@@ -36,7 +36,8 @@ export function DashboardPage() {
     return parseInt(b) - parseInt(a)
   })
 
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(yearKeys))
+  const currentYear = String(new Date().getFullYear())
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(yearKeys.filter(k => k === currentYear || k === 'No date')))
   function toggleYear(key: string) {
     setExpanded(prev => {
       const next = new Set(prev)
