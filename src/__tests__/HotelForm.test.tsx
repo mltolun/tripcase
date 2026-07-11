@@ -10,7 +10,7 @@ const defaultProps = {
   onCancel: vi.fn(),
 }
 
-function renderForm(props: Partial<typeof defaultProps> = {}) {
+function renderForm(props: Partial<typeof defaultProps & { initial?: Partial<Hotel> }> = {}) {
   return render(<HotelForm {...defaultProps} {...props} />)
 }
 

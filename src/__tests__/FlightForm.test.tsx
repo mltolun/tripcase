@@ -28,11 +28,11 @@ const defaultProps = {
   onCancel: vi.fn(),
 }
 
-function renderForm(props: Partial<typeof defaultProps> = {}) {
+function renderForm(props: Partial<typeof defaultProps & { initial?: Partial<Flight> }> = {}) {
   return render(<FlightForm {...defaultProps} {...props} />)
 }
 
-function renderFormWithDate(props: Partial<typeof defaultProps> & { date?: string } = {}) {
+function renderFormWithDate(props: Partial<typeof defaultProps & { initial?: Partial<Flight>; date?: string }> = {}) {
   return render(
     <FlightForm
       {...defaultProps}
