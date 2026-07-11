@@ -33,7 +33,9 @@ function getAirportOffset(airportCode: string, date: Date): number {
     hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
   }).formatToParts(date)
   const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0', 10)
-  const localMs = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+  let hour = get('hour')
+  if (hour === 24) hour = 0
+  const localMs = Date.UTC(get('year'), get('month') - 1, get('day'), hour, get('minute'), get('second'))
   const utcMs = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds())
   return (utcMs - localMs) / 60000
 }
