@@ -40,9 +40,11 @@ function getAirportOffset(airportCode: string, date: Date): number {
 
 function localToUtc(localIso: string, airportCode: string | null): string {
   const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
-  const isZeroOffset = /[+-]00:00$/.test(localIso)
+  const isNegZero = /-00:00$/.test(localIso)
   const d = new Date(hasTz ? localIso : localIso + 'Z')
-  if ((hasTz && !isZeroOffset) || !airportCode || isNaN(d.getTime())) return d.toISOString()
+  // -00:00 means local time with unknown offset (FlightView convention).
+  // +00:00 and Z mean UTC — return as-is.
+  if ((hasTz && !isNegZero) || !airportCode || isNaN(d.getTime())) return d.toISOString()
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000).toISOString()
 }
@@ -155,8 +157,8 @@ describe('localToUtc', () => {
     expect(localToUtc('2026-06-06T12:30:00-00:00', 'LHR')).toBe('2026-06-06T11:30:00.000Z')
   })
 
-  it('FlightView +00:00 treated same as -00:00', () => {
-    expect(localToUtc('2026-06-06T09:10:00.000+00:00', 'MAD')).toBe('2026-06-06T07:10:00.000Z')
+  it('FlightView +00:00 treated as UTC (no conversion)', () => {
+    expect(localToUtc('2026-06-06T09:10:00.000+00:00', 'MAD')).toBe('2026-06-06T09:10:00.000Z')
   })
 
   it('PHX local 10:00 (MST, UTC-7) -> 17:00 UTC', () => {

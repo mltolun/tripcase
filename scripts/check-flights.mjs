@@ -54,9 +54,11 @@ function getAirportOffset(airportCode, date) {
 function localToUtc(localIso, airportCode) {
   if (!localIso) return null
   const hasTz = /[Zz]|[+-]\d{2}:\d{2}$/.test(localIso)
-  const isZeroOffset = /[+-]00:00$/.test(localIso)
+  const isNegZero = /-00:00$/.test(localIso)
   const d = new Date(hasTz ? localIso : localIso + 'Z')
-  if ((hasTz && !isZeroOffset) || !airportCode || isNaN(d.getTime())) return d.toISOString()
+  // -00:00 means local time with unknown offset (FlightView convention).
+  // +00:00 and Z mean UTC — return as-is.
+  if ((hasTz && !isNegZero) || !airportCode || isNaN(d.getTime())) return d.toISOString()
   const offset = getAirportOffset(airportCode, d)
   return new Date(d.getTime() + offset * 60000).toISOString()
 }
