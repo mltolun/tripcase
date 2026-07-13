@@ -27,7 +27,7 @@ RULES:
 5. Always format flight information clearly with prices, airlines, departure/arrival times, and durations.
 6. Be concise but thorough. Present the best options first.`
 
-    const apiMessages: Message[] = [
+    const apiMessages = [
       { role: 'system', content: systemPrompt },
       ...messages.map((m: { role: string; content: string }) => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -35,7 +35,7 @@ RULES:
       })),
     ]
 
-    const tools: ToolDef[] = [
+    const tools = [
       {
         type: 'function',
         function: {
@@ -72,70 +72,122 @@ RULES:
       },
     ]
 
-    let turnCount = 0
-    while (turnCount < 5) {
-      const response = await callOpenRouter(apiMessages, tools)
-      const choice = response.choices?.[0]
-      if (!choice) throw new Error('No response from API')
+    const openRouterRes = await fetch(`${API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://tripcase.app',
+        'X-Title': 'TripCase',
+      },
+      body: JSON.stringify({
+        model: 'openrouter/free',
+        messages: apiMessages,
+        tools,
+        tool_choice: 'auto',
+        stream: true,
+      }),
+    })
 
-      const msg = choice.message
-
-      if (msg.tool_calls && msg.tool_calls.length > 0) {
-        // Add the assistant message with tool calls to the history
-        apiMessages.push({
-          role: 'assistant',
-          content: msg.content ?? null,
-          tool_calls: msg.tool_calls.map((tc: ToolCall) => ({
-            id: tc.id,
-            type: 'function',
-            function: { name: tc.function.name, arguments: tc.function.arguments },
-          })),
-        })
-
-        // Execute each tool call
-        for (const tc of msg.tool_calls) {
-          let result: string
-          try {
-            const args = JSON.parse(tc.function.arguments)
-            if (tc.function.name === 'search_flights') {
-              result = JSON.stringify(await searchFlights(args))
-            } else {
-              result = JSON.stringify({ error: `Unknown tool: ${tc.function.name}` })
-            }
-          } catch (err) {
-            result = JSON.stringify({ error: (err as Error).message })
-          }
-
-          apiMessages.push({
-            role: 'tool',
-            tool_call_id: tc.id,
-            content: result,
-          })
-        }
-
-        turnCount++
-        continue
-      }
-
-      // Final response - stream as plain text
-      const text = msg.content ?? ''
-      const encoder = new TextEncoder()
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(text))
-          controller.close()
-        },
-      })
-
-      return new Response(stream, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/plain; charset=utf-8',
-        },
-      })
+    if (!openRouterRes.ok) {
+      const body = await openRouterRes.text()
+      throw new Error(`OpenRouter API error ${openRouterRes.status}: ${body}`)
     }
 
-    throw new Error('Agent exceeded maximum turn limit')
+    const reader = openRouterRes.body!.getReader()
+    const decoder = new TextDecoder()
+    const encoder = new TextEncoder()
+
+    let buffer = ''
+    const toolCallDeltas = new Map<number, { id?: string; name?: string; arguments: string }>()
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+              const trimmed = line.trim()
+              if (!trimmed.startsWith('data: ')) continue
+
+              const data = trimmed.slice(6)
+              if (data === '[DONE]') {
+                flushToolCalls(controller, encoder, toolCallDeltas)
+                controller.enqueue(encoder.encode(JSON.stringify({ type: 'done' }) + '\n'))
+                continue
+              }
+
+              let chunk: any
+              try {
+                chunk = JSON.parse(data)
+              } catch {
+                continue
+              }
+
+              const delta = chunk.choices?.[0]?.delta
+              if (!delta) continue
+
+              if (delta.content) {
+                flushToolCalls(controller, encoder, toolCallDeltas)
+                controller.enqueue(
+                  encoder.encode(JSON.stringify({ type: 'text', content: delta.content }) + '\n'),
+                )
+              }
+
+              if (delta.tool_calls) {
+                for (const tc of delta.tool_calls) {
+                  const index = tc.index
+                  if (!toolCallDeltas.has(index)) {
+                    toolCallDeltas.set(index, {
+                      id: tc.id,
+                      name: tc.function?.name,
+                      arguments: tc.function?.arguments || '',
+                    })
+                  } else {
+                    const existing = toolCallDeltas.get(index)!
+                    existing.arguments += tc.function?.arguments || ''
+                  }
+                }
+              }
+
+              const finishReason = chunk.choices?.[0]?.finish_reason
+              if (finishReason === 'tool_calls') {
+                flushToolCalls(controller, encoder, toolCallDeltas)
+                controller.enqueue(encoder.encode(JSON.stringify({ type: 'done' }) + '\n'))
+              } else if (finishReason === 'stop') {
+                controller.enqueue(encoder.encode(JSON.stringify({ type: 'done' }) + '\n'))
+              }
+            }
+          }
+
+          flushToolCalls(controller, encoder, toolCallDeltas)
+          controller.enqueue(encoder.encode(JSON.stringify({ type: 'done' }) + '\n'))
+        } catch (err) {
+          controller.enqueue(
+            encoder.encode(
+              JSON.stringify({ type: 'error', message: (err as Error).message }) + '\n',
+            ),
+          )
+          controller.enqueue(encoder.encode(JSON.stringify({ type: 'done' }) + '\n'))
+        } finally {
+          reader.releaseLock()
+          controller.close()
+        }
+      },
+    })
+
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/x-ndjson',
+      },
+    })
   } catch (err) {
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
@@ -147,179 +199,27 @@ RULES:
   }
 })
 
-async function callOpenRouter(messages: Message[], tools: ToolDef[]) {
-  const res = await fetch(`${API_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://tripcase.app',
-      'X-Title': 'TripCase',
-    },
-    body: JSON.stringify({
-      model: 'openai/gpt-oss-20b:free',
-      messages,
-      tools: tools.length > 0 ? tools : undefined,
-      tool_choice: tools.length > 0 ? 'auto' : undefined,
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`OpenRouter API error ${res.status}: ${body}`)
-  }
-
-  return await res.json()
-}
-
-async function searchFlights(params: {
-  origin: string
-  destination: string
-  date: string
-  return_date?: string
-  passengers?: number
-}) {
-  const { origin, destination, date, return_date } = params
-
-  const url =
-    `https://www.google.com/travel/flights?q=Flights+to+${destination}+from+${origin}+on+${date}${return_date ? `+return+on+${return_date}` : ''}&curr=USD`
-
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Cache-Control': 'no-cache',
-    },
-  })
-
-  if (!res.ok) throw new Error(`Google Flights fetch failed: ${res.status}`)
-  const html = await res.text()
-
-  return extractFlightsFromPage(html, origin, destination, date)
-}
-
-function extractFlightsFromPage(
-  html: string,
-  origin: string,
-  destination: string,
-  date: string,
+function flushToolCalls(
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder,
+  toolCallDeltas: Map<number, { id?: string; name?: string; arguments: string }>,
 ) {
-  const results: FlightSearchResult[] = []
+  if (toolCallDeltas.size === 0) return
 
-  const priceRegex = /\$(\d{1,4}(?:,\d{3})?(?:\.\d{2})?)/g
-  const prices: number[] = []
-  let pm
-  while ((pm = priceRegex.exec(html)) !== null) {
-    const p = parseInt(pm[1].replace(/,/g, ''), 10)
-    if (p > 20 && p < 20000 && !prices.includes(p)) prices.push(p)
-  }
+  const calls = Array.from(toolCallDeltas.entries()).map(([, tc]) => {
+    let parsedArgs: any
+    try {
+      parsedArgs = JSON.parse(tc.arguments)
+    } catch {
+      parsedArgs = tc.arguments
+    }
+    return {
+      id: tc.id,
+      name: tc.name,
+      arguments: parsedArgs,
+    }
+  })
 
-  const durationRegex = /(\d{1,2})\s*h[rs]?\s*(?:(\d{1,2})\s*min?)?/gi
-  const durations: string[] = []
-  let dm
-  while ((dm = durationRegex.exec(html)) !== null) {
-    const d = dm[2] ? `${dm[1]}h ${dm[2]}m` : `${dm[1]}h`
-    if (!durations.includes(d)) durations.push(d)
-  }
-
-  const airlineKeywords = [
-    'American Airlines', 'Delta', 'United', 'Southwest', 'JetBlue',
-    'Alaska Airlines', 'Spirit', 'Frontier', 'Allegiant', 'Hawaiian',
-    'Air Canada', 'British Airways', 'Lufthansa', 'Air France', 'KLM',
-    'Emirates', 'Qatar Airways', 'Singapore Airlines', 'Cathay Pacific',
-    'ANA', 'Japan Airlines', 'Korean Air', 'Turkish Airlines',
-    'Virgin Atlantic', 'Iberia', 'Swiss', 'Ryanair', 'EasyJet',
-    'Wizz Air', 'Finnair', 'SAS', 'Norwegian', 'TAP Air Portugal',
-    'Aer Lingus',
-  ]
-
-  const foundAirlines = airlineKeywords.filter((a) =>
-    html.toLowerCase().includes(a.toLowerCase()),
-  )
-
-  const timeRegex = /(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)/g
-  const times: string[] = []
-  let tm
-  while ((tm = timeRegex.exec(html)) !== null) {
-    times.push(tm[0])
-  }
-
-  const bestPrice = prices.length > 0 ? Math.min(...prices) : null
-
-  for (let i = 0; i < Math.min(foundAirlines.length || 1, 5); i++) {
-    const airline = foundAirlines[i] || 'Multiple Airlines'
-    const price =
-      prices[i] ??
-      (bestPrice ? bestPrice + Math.floor(Math.random() * 200) : null)
-    const duration = durations[i] || durations[0] || 'Varies'
-    const stops = i === 0 ? 'Nonstop' : i < 3 ? '1 stop' : '2+ stops'
-
-    results.push({
-      airline,
-      origin,
-      destination,
-      date,
-      price: price ? `$${price}` : 'Check website',
-      duration,
-      stops,
-      departure_time: times[i * 2] || 'See details',
-      arrival_time: times[i * 2 + 1] || 'See details',
-    })
-  }
-
-  if (results.length === 0) {
-    results.push({
-      airline: 'Multiple Airlines',
-      origin,
-      destination,
-      date,
-      price: bestPrice ? `From $${bestPrice}` : 'Check Google Flights',
-      duration: durations[0] || 'Varies',
-      stops: 'Varies',
-      departure_time: 'See Google Flights',
-      arrival_time: 'See Google Flights',
-    })
-  }
-
-  return results.slice(0, 5)
-}
-
-interface FlightSearchResult {
-  airline: string
-  origin: string
-  destination: string
-  date: string
-  price: string
-  duration: string
-  stops: string
-  departure_time: string
-  arrival_time: string
-}
-
-interface Message {
-  role: string
-  content: string | null
-  tool_calls?: ToolCall[]
-  tool_call_id?: string
-}
-
-interface ToolCall {
-  id: string
-  type: string
-  function: {
-    name: string
-    arguments: string
-  }
-}
-
-interface ToolDef {
-  type: 'function'
-  function: {
-    name: string
-    description: string
-    parameters: Record<string, unknown>
-  }
+  controller.enqueue(encoder.encode(JSON.stringify({ type: 'tool_calls', calls }) + '\n'))
+  toolCallDeltas.clear()
 }

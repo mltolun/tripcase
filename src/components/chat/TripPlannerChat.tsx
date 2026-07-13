@@ -1,12 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
+import { useTripPlannerChat } from '../../lib/useTripPlannerChat'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, User, Loader2, Send } from 'lucide-react'
-import type { UIMessage } from 'ai'
 import type { Trip } from '../../lib/database.types'
-
-const API_BASE = import.meta.env.VITE_SUPABASE_URL
 
 interface TripPlannerChatProps {
   trip: Trip
@@ -16,46 +12,19 @@ export function TripPlannerChat({ trip }: TripPlannerChatProps) {
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const { messages, sendMessage, status, error } = useChat<UIMessage>({
-    id: `trip-${trip.id}`,
-    transport: new DefaultChatTransport({
-      api: `${API_BASE}/functions/v1/trip-planner-agent`,
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: { trip_id: trip.id },
-    }),
-    messages: [
-      {
-        id: 'welcome',
-        role: 'assistant',
-        parts: [
-          { type: 'text' as const, text: `Hi! I'm your trip planning assistant for **${trip.name}**. I can help find flights, build itineraries, and get travel info. What are you looking for?` },
-        ],
-      },
-    ],
-  })
-
-  const isLoading = status === 'submitted' || status === 'streaming'
+  const { messages, sendMessage, isLoading, streamingText, error } =
+    useTripPlannerChat(trip.id)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, streamingText])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const text = input.trim()
     if (!text || isLoading) return
     setInput('')
-    sendMessage({ text })
-  }
-
-  function messageContent(msg: typeof messages[number]): string {
-    return msg.parts
-      .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-      .map(p => p.text)
-      .join('')
+    sendMessage(text)
   }
 
   return (
@@ -82,7 +51,12 @@ export function TripPlannerChat({ trip }: TripPlannerChatProps) {
                     : 'bg-ink-800 border border-ink-700 text-slate-800 rounded-tl-sm'
                 }`}
               >
-                <MarkdownRenderer content={messageContent(msg)} />
+                <MarkdownRenderer
+                  content={msg.parts
+                    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+                    .map((p) => p.text)
+                    .join('')}
+                />
               </div>
               {msg.role === 'user' && (
                 <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center shrink-0 mt-0.5">
@@ -91,25 +65,28 @@ export function TripPlannerChat({ trip }: TripPlannerChatProps) {
               )}
             </motion.div>
           ))}
-          {isLoading && (
+          {(isLoading || streamingText) && (
             <motion.div
+              key="streaming"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex gap-3"
             >
-              <div className="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot size={16} className="text-amber-400" />
               </div>
               <div className="bg-ink-800 border border-ink-700 rounded-2xl rounded-tl-sm px-4 py-3">
-                <Loader2 size={16} className="text-slate-500 animate-spin" />
+                {streamingText ? (
+                  <MarkdownRenderer content={streamingText} />
+                ) : (
+                  <Loader2 size={16} className="text-slate-500 animate-spin" />
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
         {error && (
-          <p className="text-xs text-rose-400 text-center">
-            Something went wrong. Please try again.
-          </p>
+          <p className="text-xs text-rose-400 text-center">{error}</p>
         )}
         <div ref={bottomRef} />
       </div>

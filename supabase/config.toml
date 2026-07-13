@@ -9,6 +9,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/trip-planner-agent/index.ts"
 
+[functions.search-flights]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/search-flights/index.ts"
+
 [functions.sync-flight-durations]
 enabled = true
 verify_jwt = false
