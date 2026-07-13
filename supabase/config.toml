@@ -4,6 +4,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/delete-account/index.ts"
 
+[functions.trip-planner-agent]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/trip-planner-agent/index.ts"
+
 [functions.sync-flight-durations]
 enabled = true
 verify_jwt = false

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Plane, Hotel, Car, Globe, Copy, Trash2, Pencil, List, Map as MapIcon } from 'lucide-react'
+import { ArrowLeft, Plus, Plane, Hotel, Car, Globe, Copy, Trash2, Pencil, List, Map as MapIcon, MessageSquare } from 'lucide-react'
 import { useTrips } from '../hooks/useTrips'
 import { useFlights } from '../hooks/useFlights'
 import { useHotels } from '../hooks/useHotels'
@@ -17,10 +17,11 @@ import { CarForm } from '../components/cars/CarForm'
 import { EditTripModal } from '../components/trips/EditTripModal'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
+import { TripPlannerChat } from '../components/chat/TripPlannerChat'
 import type { Flight, Hotel as HotelType, CarRental, FlightInsert, HotelInsert, CarRentalInsert } from '../lib/database.types'
 import toast from 'react-hot-toast'
 
-type Tab = 'flights' | 'hotels' | 'cars'
+type Tab = 'flights' | 'hotels' | 'cars' | 'chat'
 
 export function TripPage() {
   const { id } = useParams<{ id: string }>()
@@ -78,6 +79,7 @@ export function TripPage() {
     { key: 'flights', label: 'Flights', icon: Plane, count: flights.length },
     { key: 'hotels', label: 'Hotels', icon: Hotel, count: hotels.length },
     { key: 'cars', label: 'Car Rentals', icon: Car, count: cars.length },
+    { key: 'chat', label: 'AI Planner', icon: MessageSquare as typeof Plane, count: 0 },
   ]
 
   return (
@@ -241,6 +243,12 @@ export function TripPage() {
                 {cars.length === 0 && <EmptyState icon={<Car size={28} />} label="No car rentals yet" />}
               </div>
             )}
+          </motion.div>
+        )}
+
+        {tab === 'chat' && (
+          <motion.div key="chat" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+            <TripPlannerChat trip={trip} />
           </motion.div>
         )}
       </AnimatePresence>
