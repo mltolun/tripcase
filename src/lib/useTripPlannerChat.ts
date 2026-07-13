@@ -92,6 +92,17 @@ async function executeToolCall(
   throw new Error(`Unknown tool: ${toolCall.name}`)
 }
 
+function describeToolCall(tc: ToolCallEvent): string {
+  if (tc.name === 'search_flights') {
+    const args = tc.arguments as Record<string, string>
+    const parts = [`Searching for flights from **${args.origin}** to **${args.destination}**`]
+    if (args.date) parts.push(`on **${args.date}**`)
+    if (args.return_date) parts.push(`returning **${args.return_date}**`)
+    return parts.join(' ')
+  }
+  return `Running ${tc.name}...`
+}
+
 export function useTripPlannerChat(tripId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -138,6 +149,7 @@ export function useTripPlannerChat(tripId: string) {
       const MAX_TURNS = 5
 
       while (turnCount < MAX_TURNS) {
+        setStreamingText(fullText || '*Thinking...*')
         let toolCalls: ToolCallEvent[] | null = null
         let turnError: string | null = null
         let turnText = ''
@@ -178,6 +190,7 @@ export function useTripPlannerChat(tripId: string) {
           })
 
           for (const tc of toolCalls) {
+            setStreamingText(`*${describeToolCall(tc)}...*`)
             let result: Record<string, unknown>
             try {
               result = await executeToolCall(tc)
@@ -190,8 +203,6 @@ export function useTripPlannerChat(tripId: string) {
             })
           }
 
-          fullText = ''
-          setStreamingText('')
           turnCount++
           continue
         }
